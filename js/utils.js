@@ -34,7 +34,11 @@ NexT.utils = {
 
     $.fancybox.defaults.hash = false;
     $('.fancybox').fancybox({
-      loop   : true,
+      loop   : false,
+      wheel  : false,
+      arrows : false,
+      infobar: false,
+      animationDuration: 300,
       helpers: {
         overlay: {
           locked: false
