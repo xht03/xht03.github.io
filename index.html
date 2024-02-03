@@ -151,6 +151,164 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://xht03.github.io/2024/02/03/Git%E7%AE%80%E6%98%8E%E6%95%99%E7%A8%8B/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="xht03">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="延绪的水上书">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/02/03/Git%E7%AE%80%E6%98%8E%E6%95%99%E7%A8%8B/" class="post-title-link" itemprop="url">Git简明教程</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+              
+
+              <time title="Created: 2024-02-03 17:14:27 / Modified: 19:38:41" itemprop="dateCreated datePublished" datetime="2024-02-03T17:14:27+08:00">2024-02-03</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/The-Missing-Semester/" itemprop="url" rel="index"><span itemprop="name">The Missing Semester</span></a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus: </span>
+    
+    <a title="disqus" href="/2024/02/03/Git%E7%AE%80%E6%98%8E%E6%95%99%E7%A8%8B/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2024/02/03/Git简明教程/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="常用-Git-指令"><a href="#常用-Git-指令" class="headerlink" title="常用 Git 指令"></a>常用 Git 指令</h2><p><strong>基础设置：</strong></p>
+<ul>
+<li><p>查看所有配置：<code>git config -l</code></p>
+</li>
+<li><p>查看系统配置：<code>git config --system --list</code> 或 <code>git config --system -l</code></p>
+</li>
+<li><p>查看用户配置：<code>git config --global --list</code></p>
+<hr>
+</li>
+<li><p>设置用户名和邮箱：<code>git config --global user.name &quot;你的用户名&quot;</code> </p>
+<p>​								<code>git config --global user.email &quot;你的邮箱地址&quot;</code></p>
+</li>
+<li><p>删除用户名和邮箱：<code>git config --global --unset user.name</code></p>
+<p>​								<code>git config --global --unset user.email</code></p>
+<hr>
+</li>
+</ul>
+<p><strong>常规操作：</strong></p>
+<ul>
+<li><p>查看所有文件状态：<code>git status</code></p>
+</li>
+<li><p>查看指定文件状态：<code>git status [filename]</code></p>
+</li>
+<li><p>查看日志：<code>git log</code></p>
+<hr>
+</li>
+<li><p>初始化（在当前目录下新建一个代码库）：<code>git init</code></p>
+</li>
+<li><p>添加文件到暂存区：<code>git add [文件名]</code></p>
+</li>
+<li><p>添加工作区所有文件到暂存区：<code>git add .</code></p>
+</li>
+<li><p>提交更改：<code>git commit</code> 或 <code>git commit -m &quot;消息内容&quot;</code></p>
+</li>
+<li><p>推送到远程仓库：<code>git push</code> 或 <code>git push [远程仓库名称] [本地分支名称]:[远程分支名称]</code></p>
+</li>
+<li><p>克隆仓库：<code>git clone [URL]</code></p>
+</li>
+<li><p>拉取远程变更：<code>git pull</code> 或 <code>git pull [远程仓库名称] [远程分支名称]</code></p>
+</li>
+<li><p>获取远程变更：<code>git fetch [远程仓库名称]</code></p>
+<p><em>注意：<code>git fetch</code>会获取最新的提交，但不会自动合并到当前的工作分支</em></p>
+<hr>
+</li>
+</ul>
+<p><strong>分支管理：</strong></p>
+<ul>
+<li><p>查看所有分支：<code>git branch</code></p>
+</li>
+<li><p>创建新的分支：<code>git branch [new branchname]</code></p>
+</li>
+<li><p>重命名分支：<code>git branch -m [old branchname] [new branchname]</code></p>
+</li>
+<li><p>删除分支：<code>git branch -d [branchbname]</code></p>
+</li>
+<li><p>切换分支：<code>git checkout [branchname]</code> 或 <code>git switch [branchname]</code></p>
+</li>
+<li><p>合并分支：<code>git merge [source branchname]</code></p>
+<p><em>注意：请在目标分支执行<code>git merge</code>，使<strong>目标分支</strong>同步<strong>源分支</strong>的更改</em></p>
+<hr>
+</li>
+</ul>
+<p><strong>远程仓库：</strong></p>
+<ul>
+<li>添加远程仓库：<code>git remote add [远程仓库名称] [远程仓库URL]</code></li>
+<li>查看远程仓库：<code>git remote -v</code></li>
+<li>删除远程仓库：<code>git remote rm [远程仓库名称]</code></li>
+</ul>
+<h2 id="Git-原理"><a href="#Git-原理" class="headerlink" title="Git 原理"></a>Git 原理</h2><p>Git 是<strong>分布式版本控制</strong>。不同于<strong>本地版本控制</strong>和<strong>集中式版本控制</strong>（如SVN），每个人都拥有全部的代码。所有版本信息仓库全部同步到本地的每个用户，这样就可以在本地查看所有版本历史，可以离线在本地提交，只需在连网时push到相应的服务器或其他用户那里。由于每个用户那里保存的都是所有的版本数据，只要有一个用户的设备没有问题就可以恢复所有的数据，但这增加了本地存储空间的占用。这样不会因为服务器损坏或者网络问题，造成不能工作的情况。（详见：<a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/Bf7uVhGiu47uOELjmC5uXQ">狂神聊Git</a>）</p>
+<p>Git 本地有三个工作区域，外加远程的git仓库，总共分为四个工作区域：</p>
+<ul>
+<li><strong>工作目录</strong>  (Working Directory)</li>
+<li><strong>暂存区</strong> (Stage&#x2F;Index)</li>
+<li><strong>资源库</strong> (Repository或Git Directory)</li>
+<li><strong>远程的 git 仓库</strong> (Remote Directory)</li>
+</ul>
+<p><img src="/2024/02/03/Git%E7%AE%80%E6%98%8E%E6%95%99%E7%A8%8B/relationship.png" alt="relationship"></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
     <link itemprop="mainEntityOfPage" href="http://xht03.github.io/2024/01/30/Shadowsocks/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -527,12 +685,12 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">3</span>
+          <span class="site-state-item-count">4</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
-        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-count">3</span>
         <span class="site-state-item-name">categories</span>
       </div>
       <div class="site-state-item site-state-tags">
