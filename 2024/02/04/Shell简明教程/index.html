@@ -21,28 +21,33 @@
     var CONFIG = {"hostname":"xht03.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":"default"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":true,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
   </script>
 
-  <meta property="og:type" content="website">
-<meta property="og:title" content="延绪的水上书">
-<meta property="og:url" content="http://xht03.github.io/index.html">
+  <meta name="description" content="shell 使用什么是shell如今的计算机有着多种多样的交互接口让我们可以进行指令的的输入，如：图像化的用户界面（GUI）、语音输入 、AR&#x2F;VR 。 这些交互接口可以覆盖 80% 的使用场景，但是它们也从根本上限制了你的操作方式——你不能点击一个不存在的按钮或者是用语音输入一个还没有被录入的指令。为了充分利用计算机的能力，我们不得不回到最根本的方式，使用文字接口：Shell。 she">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Shell简明教程">
+<meta property="og:url" content="http://xht03.github.io/2024/02/04/Shell%E7%AE%80%E6%98%8E%E6%95%99%E7%A8%8B/index.html">
 <meta property="og:site_name" content="延绪的水上书">
+<meta property="og:description" content="shell 使用什么是shell如今的计算机有着多种多样的交互接口让我们可以进行指令的的输入，如：图像化的用户界面（GUI）、语音输入 、AR&#x2F;VR 。 这些交互接口可以覆盖 80% 的使用场景，但是它们也从根本上限制了你的操作方式——你不能点击一个不存在的按钮或者是用语音输入一个还没有被录入的指令。为了充分利用计算机的能力，我们不得不回到最根本的方式，使用文字接口：Shell。 she">
 <meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2024-02-04T02:49:32.000Z">
+<meta property="article:modified_time" content="2024-02-04T12:23:47.612Z">
 <meta property="article:author" content="xht03">
+<meta property="article:tag" content="original">
 <meta name="twitter:card" content="summary">
 
-<link rel="canonical" href="http://xht03.github.io/">
+<link rel="canonical" href="http://xht03.github.io/2024/02/04/Shell%E7%AE%80%E6%98%8E%E6%95%99%E7%A8%8B/">
 
 
 <script id="page-configurations">
   // https://hexo.io/docs/variables.html
   CONFIG.page = {
     sidebar: "",
-    isHome : true,
-    isPost : false,
+    isHome : false,
+    isPost : true,
     lang   : 'zh-CN'
   };
 </script>
 
-  <title>延绪的水上书</title>
+  <title>Shell简明教程 | 延绪的水上书</title>
   
 
 
@@ -145,9 +150,10 @@
         <div class="content-wrap">
           
 
-          <div class="content index posts-expand">
+          <div class="content post posts-expand">
             
-      
+
+    
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
@@ -163,10 +169,9 @@
       <meta itemprop="name" content="延绪的水上书">
     </span>
       <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/02/04/Shell%E7%AE%80%E6%98%8E%E6%95%99%E7%A8%8B/" class="post-title-link" itemprop="url">Shell简明教程</a>
-        </h2>
+        <h1 class="post-title" itemprop="name headline">
+          Shell简明教程
+        </h1>
 
         <div class="post-meta">
             <span class="post-meta-item">
@@ -213,7 +218,7 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <h3 id="shell-使用"><a href="#shell-使用" class="headerlink" title="shell 使用"></a>shell 使用</h3><h4 id="什么是shell"><a href="#什么是shell" class="headerlink" title="什么是shell"></a>什么是shell</h4><p>如今的计算机有着多种多样的交互接口让我们可以进行指令的的输入，如：图像化的用户界面（GUI）、语音输入 、AR&#x2F;VR 。 这些交互接口可以覆盖 80% 的使用场景，但是它们也从根本上限制了你的操作方式——你不能点击一个不存在的按钮或者是用语音输入一个还没有被录入的指令。为了充分利用计算机的能力，我们不得不回到最根本的方式，使用文字接口：Shell。</p>
+        <h3 id="shell-使用"><a href="#shell-使用" class="headerlink" title="shell 使用"></a>shell 使用</h3><h4 id="什么是shell"><a href="#什么是shell" class="headerlink" title="什么是shell"></a>什么是shell</h4><p>如今的计算机有着多种多样的交互接口让我们可以进行指令的的输入，如：图像化的用户界面（GUI）、语音输入 、AR&#x2F;VR 。 这些交互接口可以覆盖 80% 的使用场景，但是它们也从根本上限制了你的操作方式——你不能点击一个不存在的按钮或者是用语音输入一个还没有被录入的指令。为了充分利用计算机的能力，我们不得不回到最根本的方式，使用文字接口：Shell。</p>
 <p>shell 通常指的是操作系统提供给用户与内核进行交互的用户接口。<strong>Bourne Again Shell</strong>，简称 <strong>bash</strong>。 这是被最广泛使用的一种 shell，它的语法和其他的 shell 都是类似的。</p>
 <hr>
 <h4 id="shell-大致原理"><a href="#shell-大致原理" class="headerlink" title="shell 大致原理"></a>shell 大致原理</h4><p>shell 基于空格分割命令并进行解析，然后执行第一个单词代表的程序，并将后续的单词作为程序可以访问的参数。如果您希望传递的参数中包含空格（例如一个名为 My Photos 的文件夹），您要么用使用单引号，双引号将其包裹起来，要么使用转义符号 <code>\</code> 进行处理（<code>My\ Photos</code>）。</p>
@@ -389,326 +394,46 @@
 <hr>
 <h3 id="更多"><a href="#更多" class="headerlink" title="更多"></a>更多</h3><p>详见：<a target="_blank" rel="noopener" href="https://missing.csail.mit.edu/">missing semester</a></p>
 
-      
     </div>
 
     
     
     
+
       <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
+          <div class="post-tags">
+              <a href="/tags/original/" rel="tag"># original</a>
+          </div>
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://xht03.github.io/2024/02/03/Git%E7%AE%80%E6%98%8E%E6%95%99%E7%A8%8B/">
+        
 
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="xht03">
-      <meta itemprop="description" content="">
-    </span>
 
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="延绪的水上书">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/02/03/Git%E7%AE%80%E6%98%8E%E6%95%99%E7%A8%8B/" class="post-title-link" itemprop="url">Git简明教程</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-              
-
-              <time title="创建时间：2024-02-03 17:14:27 / 修改时间：19:38:41" itemprop="dateCreated datePublished" datetime="2024-02-03T17:14:27+08:00">2024-02-03</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/The-Missing-Semester/" itemprop="url" rel="index"><span itemprop="name">The Missing Semester</span></a>
-                </span>
-            </span>
-
-          
-  
-  <span class="post-meta-item">
-    
-      <span class="post-meta-item-icon">
-        <i class="far fa-comment"></i>
-      </span>
-      <span class="post-meta-item-text">Disqus：</span>
-    
-    <a title="disqus" href="/2024/02/03/Git%E7%AE%80%E6%98%8E%E6%95%99%E7%A8%8B/#disqus_thread" itemprop="discussionUrl">
-      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2024/02/03/Git简明教程/" itemprop="commentCount"></span>
-    </a>
-  </span>
-  
-  
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h2 id="常用-Git-指令"><a href="#常用-Git-指令" class="headerlink" title="常用 Git 指令"></a>常用 Git 指令</h2><p><strong>基础设置：</strong></p>
-<ul>
-<li><p>查看所有配置：<code>git config -l</code></p>
-</li>
-<li><p>查看系统配置：<code>git config --system --list</code> 或 <code>git config --system -l</code></p>
-</li>
-<li><p>查看用户配置：<code>git config --global --list</code></p>
-<hr>
-</li>
-<li><p>设置用户名和邮箱：<code>git config --global user.name &quot;你的用户名&quot;</code> </p>
-<p>​								<code>git config --global user.email &quot;你的邮箱地址&quot;</code></p>
-</li>
-<li><p>删除用户名和邮箱：<code>git config --global --unset user.name</code></p>
-<p>​								<code>git config --global --unset user.email</code></p>
-<hr>
-</li>
-</ul>
-<p><strong>常规操作：</strong></p>
-<ul>
-<li><p>查看所有文件状态：<code>git status</code></p>
-</li>
-<li><p>查看指定文件状态：<code>git status [filename]</code></p>
-</li>
-<li><p>查看日志：<code>git log</code></p>
-<hr>
-</li>
-<li><p>初始化（在当前目录下新建一个代码库）：<code>git init</code></p>
-</li>
-<li><p>添加文件到暂存区：<code>git add [文件名]</code></p>
-</li>
-<li><p>添加工作区所有文件到暂存区：<code>git add .</code></p>
-</li>
-<li><p>提交更改：<code>git commit</code> 或 <code>git commit -m &quot;消息内容&quot;</code></p>
-</li>
-<li><p>推送到远程仓库：<code>git push</code> 或 <code>git push [远程仓库名称] [本地分支名称]:[远程分支名称]</code></p>
-</li>
-<li><p>克隆仓库：<code>git clone [URL]</code></p>
-</li>
-<li><p>拉取远程变更：<code>git pull</code> 或 <code>git pull [远程仓库名称] [远程分支名称]</code></p>
-</li>
-<li><p>获取远程变更：<code>git fetch [远程仓库名称]</code></p>
-<p><em>注意：<code>git fetch</code>会获取最新的提交，但不会自动合并到当前的工作分支</em></p>
-<hr>
-</li>
-</ul>
-<p><strong>分支管理：</strong></p>
-<ul>
-<li><p>查看所有分支：<code>git branch</code></p>
-</li>
-<li><p>创建新的分支：<code>git branch [new branchname]</code></p>
-</li>
-<li><p>重命名分支：<code>git branch -m [old branchname] [new branchname]</code></p>
-</li>
-<li><p>删除分支：<code>git branch -d [branchbname]</code></p>
-</li>
-<li><p>切换分支：<code>git checkout [branchname]</code> 或 <code>git switch [branchname]</code></p>
-</li>
-<li><p>合并分支：<code>git merge [source branchname]</code></p>
-<p><em>注意：请在目标分支执行<code>git merge</code>，使<strong>目标分支</strong>同步<strong>源分支</strong>的更改</em></p>
-<hr>
-</li>
-</ul>
-<p><strong>远程仓库：</strong></p>
-<ul>
-<li>添加远程仓库：<code>git remote add [远程仓库名称] [远程仓库URL]</code></li>
-<li>查看远程仓库：<code>git remote -v</code></li>
-<li>删除远程仓库：<code>git remote rm [远程仓库名称]</code></li>
-</ul>
-<h2 id="Git-原理"><a href="#Git-原理" class="headerlink" title="Git 原理"></a>Git 原理</h2><p>Git 是<strong>分布式版本控制</strong>。不同于<strong>本地版本控制</strong>和<strong>集中式版本控制</strong>（如SVN），每个人都拥有全部的代码。所有版本信息仓库全部同步到本地的每个用户，这样就可以在本地查看所有版本历史，可以离线在本地提交，只需在连网时push到相应的服务器或其他用户那里。由于每个用户那里保存的都是所有的版本数据，只要有一个用户的设备没有问题就可以恢复所有的数据，但这增加了本地存储空间的占用。这样不会因为服务器损坏或者网络问题，造成不能工作的情况。（详见：<a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/Bf7uVhGiu47uOELjmC5uXQ">狂神聊Git</a>）</p>
-<p>Git 本地有三个工作区域，外加远程的git仓库，总共分为四个工作区域：</p>
-<ul>
-<li><strong>工作目录</strong>  (Working Directory)</li>
-<li><strong>暂存区</strong> (Stage&#x2F;Index)</li>
-<li><strong>资源库</strong> (Repository或Git Directory)</li>
-<li><strong>远程的 git 仓库</strong> (Remote Directory)</li>
-</ul>
-<p><img src="/2024/02/03/Git%E7%AE%80%E6%98%8E%E6%95%99%E7%A8%8B/relationship.png" alt="relationship"></p>
-
-      
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/02/03/Git%E7%AE%80%E6%98%8E%E6%95%99%E7%A8%8B/" rel="prev" title="Git简明教程">
+      <i class="fa fa-chevron-left"></i> Git简明教程
+    </a></div>
+      <div class="post-nav-item"></div>
     </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
       </footer>
+    
   </article>
   
   
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://xht03.github.io/2024/01/30/Shadowsocks/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="xht03">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="延绪的水上书">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/01/30/Shadowsocks/" class="post-title-link" itemprop="url">基于Shadowsocks的节点搭建</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-              
-
-              <time title="创建时间：2024-01-30 13:00:48 / 修改时间：14:23:06" itemprop="dateCreated datePublished" datetime="2024-01-30T13:00:48+08:00">2024-01-30</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/VPN/" itemprop="url" rel="index"><span itemprop="name">VPN</span></a>
-                </span>
-            </span>
-
-          
-  
-  <span class="post-meta-item">
-    
-      <span class="post-meta-item-icon">
-        <i class="far fa-comment"></i>
-      </span>
-      <span class="post-meta-item-text">Disqus：</span>
-    
-    <a title="disqus" href="/2024/01/30/Shadowsocks/#disqus_thread" itemprop="discussionUrl">
-      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2024/01/30/Shadowsocks/" itemprop="commentCount"></span>
-    </a>
-  </span>
-  
-  
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h2 id="购买并连接vps服务器"><a href="#购买并连接vps服务器" class="headerlink" title="购买并连接vps服务器"></a>购买并连接vps服务器</h2><p>常见服务器卖家有腾讯、阿里、亚马逊，但是这些VPS比较贵。这里我们在<a target="_blank" rel="noopener" href="https://www.vultr.com/"><em>Vultr</em></a>上购买<em>Ubuntu</em>服务器。我们用ssh工具<a target="_blank" rel="noopener" href="https://www.hostbuf.com/"><em>FinalShell</em></a>连接我们购买的VPS。</p>
-<p><img src="/2024/01/30/Shadowsocks/finalshell.png" alt="finalshell"></p>
-<h2 id="Shadowsocks原理"><a href="#Shadowsocks原理" class="headerlink" title="Shadowsocks原理"></a>Shadowsocks原理</h2><p>Shadowsocks（简称SS）是一种用于科学上网的代理工具，旨在绕过网络审查和限制。它采用 SOCKS5 协议，并使用加密算法来保护数据传输的隐私性。Shadowsocks 的工作原理是通过在本地计算机和远程服务器之间建立一个加密的隧道，将用户的网络流量通过该隧道传输。这样，用户可以访问被封锁的内容或服务，同时保护了通信的隐私性。</p>
-<p><img src="/2024/01/30/Shadowsocks/shadowsocks.png" alt="Shadowsocks原理"></p>
-<h2 id="在Ubuntu服务器上安装Shadowsocks"><a href="#在Ubuntu服务器上安装Shadowsocks" class="headerlink" title="在Ubuntu服务器上安装Shadowsocks"></a>在Ubuntu服务器上安装Shadowsocks</h2><ol>
-<li><p>命令行安装Shadowsocks：<code>apt install shadowsocks-libev</code></p>
-</li>
-<li><p>查看Shadowsocks状态：<code>systemctl status shadowsocks-libev.service</code></p>
-<p><img src="/2024/01/30/Shadowsocks/status.png" alt="Shadowsocks状态"></p>
-<ul>
-<li><em>这里：enabled表明开机自启，active表示已经启动，目前正在监听8388端口</em></li>
-</ul>
-</li>
-<li><p>编辑配置文件：<code>vim /etc/shadowsocks-libev/config.json</code></p>
-<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line">    <span class="attr">&quot;server&quot;</span><span class="punctuation">:</span><span class="punctuation">[</span> <span class="string">&quot;0.0.0.0&quot;</span><span class="punctuation">]</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;mode&quot;</span><span class="punctuation">:</span><span class="string">&quot;tcp_and_udp&quot;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;server_port&quot;</span><span class="punctuation">:</span><span class="number">8388</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;local_port&quot;</span><span class="punctuation">:</span><span class="number">1080</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;password&quot;</span><span class="punctuation">:</span><span class="string">&quot;your password&quot;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;timeout&quot;</span><span class="punctuation">:</span><span class="number">86400</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;method&quot;</span><span class="punctuation">:</span><span class="string">&quot;chacha20-ietf-poly1305&quot;</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
-
-<ul>
-<li><p><em>这里我是用 vim 编辑配置文件。如果你对 vim 不熟悉，也可以直接在 FinalShell 底部的图形界	面找到 config.json 文件，双击打开，进行编辑。操作上与在 Windows 操作系统上一致。</em></p>
-</li>
-<li><p><em>这里把ip地址改成 0.0.0.0 ，意思是允许所有 ip 地址想 8388 端口发送数据，默认是只允许本机的程序向它发送数据。127.0.0.1是本地的环回地址。</em></p>
-</li>
-<li><p><em>这里的加密方式也是 AEAD ，目前最安全的加密方式。</em></p>
-</li>
-</ul>
-</li>
-<li><p>重启Shadowsocks：<code>systemctl restart shadowsocks-libev.service</code></p>
-</li>
-<li><p>再查看Shadowsocks状态：<code>systemctl status shadowsocks-libev.service</code></p>
-<p><img src="/2024/01/30/Shadowsocks/8388.png" alt="Shadowsocks新状态"></p>
-<ul>
-<li><em>这里已经是在监听 0.0.0.0 的 8388 端口，就可以进行连接了</em></li>
-</ul>
-</li>
-<li><p>编辑 Clash 的 .yaml 配置文件，然后在 Clash 里尝试连接：</p>
-<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">port:</span> <span class="number">7890</span></span><br><span class="line"><span class="attr">socks-port:</span> <span class="number">7891</span></span><br><span class="line"><span class="attr">redir-port:</span> <span class="number">7892</span></span><br><span class="line"><span class="attr">allow-lan:</span> <span class="literal">false</span></span><br><span class="line"><span class="attr">mode:</span> <span class="string">Rule</span></span><br><span class="line"><span class="attr">log-level:</span> <span class="string">info</span></span><br><span class="line"><span class="attr">external-controller:</span> <span class="string">&#x27;127.0.0.1:9090&#x27;</span></span><br><span class="line"><span class="attr">secret:</span> <span class="string">&#x27;&#x27;</span></span><br><span class="line"><span class="attr">proxies:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">&quot;My Server&quot;</span></span><br><span class="line">    <span class="attr">type:</span> <span class="string">ss</span></span><br><span class="line">    <span class="attr">server:</span> <span class="string">your</span> <span class="string">vps</span> <span class="string">ip</span></span><br><span class="line">    <span class="attr">port:</span> <span class="number">8388</span></span><br><span class="line">    <span class="attr">cipher:</span> <span class="string">chacha20-ietf-poly1305</span></span><br><span class="line">    <span class="attr">password:</span> <span class="string">&quot;your password&quot;</span></span><br><span class="line"><span class="attr">proxy-groups:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">Proxy</span></span><br><span class="line">    <span class="attr">type:</span> <span class="string">select</span></span><br><span class="line">    <span class="attr">proxies:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">&quot;My Server&quot;</span></span><br><span class="line"><span class="attr">rules:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">DOMAIN-SUFFIX,google.com,Proxy</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">MATCH,DIRECT</span></span><br></pre></td></tr></table></figure>
-
-<ul>
-<li><em>此时会连接超时 Timeout 。这是因为 Ubuntu 服务器上的防火墙 ufw 还没有关</em></li>
-</ul>
-</li>
-<li><p>查看ufw状态：<code>ufw status</code></p>
-<p><img src="/2024/01/30/Shadowsocks/ufw.png" alt="ufw"></p>
-<ul>
-<li><em>ufw 默认只开放 22 号端口</em></li>
-</ul>
-</li>
-<li><p>开放8388端口：<code>ufw allow 8388</code></p>
-<ul>
-<li><em>我们可以直接关掉 ufw 防火墙。但这样直接暴露在公网下很危险，所以我们选择新开一个端口 8388 。</em></li>
-</ul>
-</li>
-<li><p>使用Clash连接：</p>
-<p><img src="/2024/01/30/Shadowsocks/Clash.png" alt="Clash"></p>
-</li>
-<li><p>查看Ubuntu服务器日志：<code>journalctl -u shadowsocks-libev.service -f</code></p>
-<ul>
-<li><em>到第九步为止，我们已经搭建完最简陋的 VPN 了。这条指令可以帮助你发现搭建过程中的错误。</em></li>
-</ul>
-</li>
-</ol>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-
   
 
 
 
           </div>
           
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
 
 <script>
   window.addEventListener('tabs:register', () => {
@@ -755,6 +480,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#shell-%E4%BD%BF%E7%94%A8"><span class="nav-number">1.</span> <span class="nav-text">shell 使用</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BB%80%E4%B9%88%E6%98%AFshell"><span class="nav-number">1.1.</span> <span class="nav-text">什么是shell</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#shell-%E5%A4%A7%E8%87%B4%E5%8E%9F%E7%90%86"><span class="nav-number">1.2.</span> <span class="nav-text">shell 大致原理</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%9F%BA%E7%A1%80%E6%8C%87%E4%BB%A4"><span class="nav-number">1.3.</span> <span class="nav-text">基础指令</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%9C%A8shell%E4%B8%AD%E5%AF%BC%E8%88%AA"><span class="nav-number">1.4.</span> <span class="nav-text">在shell中导航</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%96%87%E4%BB%B6%E6%93%8D%E4%BD%9C"><span class="nav-number">1.5.</span> <span class="nav-text">文件操作</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%87%8D%E5%AE%9A%E5%90%91"><span class="nav-number">1.6.</span> <span class="nav-text">重定向</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%A0%B9%E7%94%A8%E6%88%B7"><span class="nav-number">1.7.</span> <span class="nav-text">根用户</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#shell-%E8%84%9A%E6%9C%AC"><span class="nav-number">2.</span> <span class="nav-text">shell 脚本</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BB%80%E4%B9%88%E6%98%AF-shell-%E8%84%9A%E6%9C%AC"><span class="nav-number">2.1.</span> <span class="nav-text">什么是 shell 脚本</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%8F%98%E9%87%8F%E8%B5%8B%E5%80%BC"><span class="nav-number">2.2.</span> <span class="nav-text">变量赋值</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%89%B9%E6%AE%8A%E5%8F%98%E9%87%8F"><span class="nav-number">2.3.</span> <span class="nav-text">特殊变量</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%BE%93%E5%85%A5%E8%BE%93%E5%87%BA"><span class="nav-number">2.4.</span> <span class="nav-text">输入输出</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%BF%94%E5%9B%9E%E5%80%BC%EF%BC%88%E9%80%80%E5%87%BA%E7%A0%81%EF%BC%89"><span class="nav-number">2.5.</span> <span class="nav-text">返回值（退出码）</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%80%9A%E9%85%8D"><span class="nav-number">2.6.</span> <span class="nav-text">通配</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#shebang"><span class="nav-number">2.7.</span> <span class="nav-text">shebang</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#shell-%E5%87%BD%E6%95%B0-VS-%E8%84%9A%E6%9C%AC"><span class="nav-number">2.8.</span> <span class="nav-text">shell 函数 VS 脚本</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#shell-%E5%B7%A5%E5%85%B7"><span class="nav-number">3.</span> <span class="nav-text">shell 工具</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%9F%A5%E7%9C%8B%E5%91%BD%E4%BB%A4%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A8"><span class="nav-number">3.1.</span> <span class="nav-text">查看命令如何使用</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%9F%A5%E6%89%BE%E6%96%87%E4%BB%B6"><span class="nav-number">3.2.</span> <span class="nav-text">查找文件</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%9F%A5%E7%9C%8B%E4%BB%A3%E7%A0%81"><span class="nav-number">3.3.</span> <span class="nav-text">查看代码</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%9F%A5%E6%89%BE-shell-%E5%91%BD%E4%BB%A4"><span class="nav-number">3.4.</span> <span class="nav-text">查找 shell 命令</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9B%B4%E5%A4%9A"><span class="nav-number">4.</span> <span class="nav-text">更多</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 
@@ -936,6 +662,26 @@ window.addEventListener('pjax:success', () => {
   }
   // defer loading until the whole page loading is completed
   window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  var disqus_config = function() {
+    this.page.url = "http://xht03.github.io/2024/02/04/Shell%E7%AE%80%E6%98%8E%E6%95%99%E7%A8%8B/";
+    this.page.identifier = "2024/02/04/Shell简明教程/";
+    this.page.title = "Shell简明教程";
+    };
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: disqus_config
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://book-written-on-water.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
 </script>
 
     </div>
