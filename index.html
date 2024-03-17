@@ -1098,10 +1098,16 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
-              
 
-              <time title="创建时间：2024-02-03 17:14:27 / 修改时间：19:38:41" itemprop="dateCreated datePublished" datetime="2024-02-03T17:14:27+08:00">2024-02-03</time>
+              <time title="创建时间：2024-02-03 17:14:27" itemprop="dateCreated datePublished" datetime="2024-02-03T17:14:27+08:00">2024-02-03</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2024-03-17 12:12:22" itemprop="dateModified" datetime="2024-03-17T12:12:22+08:00">2024-03-17</time>
+              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="far fa-folder"></i>
@@ -1161,6 +1167,8 @@
 <li><p>查看指定文件状态：<code>git status [filename]</code></p>
 </li>
 <li><p>查看日志：<code>git log</code></p>
+</li>
+<li><p>查看引用记录：<code>git relog</code></p>
 <hr>
 </li>
 <li><p>初始化（在当前目录下新建一个代码库）：<code>git init</code></p>
@@ -1178,7 +1186,9 @@
 <li><p>拉取远程变更：<code>git pull</code> 或 <code>git pull [远程仓库名称] [远程分支名称]</code></p>
 </li>
 <li><p>获取远程变更：<code>git fetch [远程仓库名称]</code></p>
-<p><em>注意：<code>git fetch</code>会获取最新的提交，但不会自动合并到当前的工作分支</em></p>
+<blockquote>
+<p>git fetch&#96;会获取最新的提交，但不会自动合并到当前的工作分支</p>
+</blockquote>
 <hr>
 </li>
 </ul>
@@ -1195,7 +1205,21 @@
 <li><p>切换分支：<code>git checkout [branchname]</code> 或 <code>git switch [branchname]</code></p>
 </li>
 <li><p>合并分支：<code>git merge [source branchname]</code></p>
-<p><em>注意：请在目标分支执行<code>git merge</code>，使<strong>目标分支</strong>同步<strong>源分支</strong>的更改</em></p>
+<blockquote>
+<p>请在目标分支执行<code>git merge</code>，使<strong>目标分支</strong>同步<strong>源分支</strong>的更改</p>
+</blockquote>
+<hr>
+</li>
+<li><p>回退到某次提交：<code>git checkout [commit-hash]</code></p>
+<blockquote>
+<p>现在处于 “detached HEAD” 状态。这意味着你不再在任何特定的分支上，而是直接在一个特定的提交上。</p>
+<p>此时，你可以自由地查看这个提交的代码，进行实验性的修改，甚至创建新的提交。这些修改和提交不会影响任何分支，除非你创建一个新的分_branch_并将这些提交添加到那里。</p>
+</blockquote>
+</li>
+<li><p>重置到某次提交：<code>git reset --hard [commit-hash]</code></p>
+<blockquote>
+<p>reset会用永久地丢弃后续的提交历史。请确保不再需要之后的提交。</p>
+</blockquote>
 <hr>
 </li>
 </ul>
