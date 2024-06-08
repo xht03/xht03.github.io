@@ -151,7 +151,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://xht03.github.io/2024/03/06/RV64%E5%8D%95%E5%91%A8%E6%9C%9FCPU%E8%AE%BE%E8%AE%A1/">
+    <link itemprop="mainEntityOfPage" href="http://xht03.github.io/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%93-%E4%BA%8B%E5%8A%A1/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.gif">
@@ -165,7 +165,189 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2024/03/06/RV64%E5%8D%95%E5%91%A8%E6%9C%9FCPU%E8%AE%BE%E8%AE%A1/" class="post-title-link" itemprop="url">RV64单周期CPU设计</a>
+            <a href="/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%93-%E4%BA%8B%E5%8A%A1/" class="post-title-link" itemprop="url">数据库摘要·事务</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2024-06-06 19:05:36" itemprop="dateCreated datePublished" datetime="2024-06-06T19:05:36+08:00">2024-06-06</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2024-06-08 19:30:56" itemprop="dateModified" datetime="2024-06-08T19:30:56+08:00">2024-06-08</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/The-Introduction-to-Database/" itemprop="url" rel="index"><span itemprop="name">The Introduction to Database</span></a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%93-%E4%BA%8B%E5%8A%A1/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2024/06/06/数据库-事务/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h3 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h3><p>在实际场景中，数据库并不是完全可靠的。数据库可能在执行某些操作时崩了，导致一系列操作戛然而止。但有很多操作是必须一起执行的，比如银行转账，不能只执行从A账户扣钱，但不继续执行向B账户里加钱，这样会破坏数据一致性。</p>
+<p>为了保证数据库在出现故障时，仍能保证数据的正确，我们引入了“事务”。</p>
+<h3 id="事务"><a href="#事务" class="headerlink" title="事务"></a>事务</h3><blockquote>
+<p>A transaction is a unit of program execution that  accesses and possibly updates various data items.</p>
+</blockquote>
+<p>总的来说，<strong>事务（transaction）</strong>是一种机制，用来确保多个操作（如读取和写入数据）要么全部成功，要么全部失败，从而保持数据的一致性和完整性。事务中的所有操作作为一个整体，要么全部完成（提交），要么全部撤销（回滚），因此保证了数据在任何情况下都是一致的。</p>
+<hr>
+<h4 id="ACID性质"><a href="#ACID性质" class="headerlink" title="ACID性质"></a>ACID性质</h4><p>在数据库系统中，Transaction需要保持一下四个性质（ACID properties）：</p>
+<ul>
+<li><strong>原子性（Atomicity）</strong>：事务中的操作，要么全部执行，要么全部没执行。</li>
+<li><strong>一致性（Consistency）</strong></li>
+<li><strong>隔离性（Isolation）</strong></li>
+<li><strong>永久性（Durability）</strong>：事务成功完成后，即使系统出现故障，它对数据库所做的更改也会持久存在。</li>
+</ul>
+<p>通俗地讲，一致性是指，在仅当前事务执行时（没有事务并发执行），<strong>数据库中的某些不变量要保持一致</strong>。比如银行转账时两个账户的余额之和要保持不变。（英文释义：If a transaction is run atomically in isolation starting  from a consistent database, the database must again be  consistent at the end of the transaction. ）</p>
+<p>但是，像银行转账，先从A账户扣钱，再向B账户里转钱，必然有处于不一致状态的时候。执行一个事务时也是如此。我们必须保证：<strong>不一致状态是不可见的</strong>。这也是为什么要保证原子性——要么全做完，要么回退到全部没做，不能位于中间不一致状态。</p>
+<p><img src="/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%93-%E4%BA%8B%E5%8A%A1/consistent.png" alt="consistency"></p>
+<p>原子性一般这样实现：数据库会记录一个事务对任何数据进行写操作前的旧值。 这些信息被写入一个称为<strong>日志（log）</strong>的文件中。如果事务没有完成其执行，数据库系统会从日志中恢复旧值，使其看起来像事务从未执行过一样。而且日志记录需要发生在事务开始修改数据库之前（log records need to be written to stable storage before any  changes are made to the database on disk.）</p>
+<p>诚然，事务序列运行（serially）是更容易实现的，但多个事务的并发运行能显著地提升性能，就像“一个人干活 Vs 一群人同时干活”：</p>
+<ul>
+<li>提升吞吐量和资源利用</li>
+<li>减少事务等待时间</li>
+</ul>
+<p>但是，如果多个事务并发执行，它们的操作可能以某种不理想的方式交错进行，导致数据库处于不一致的状态。这就需要隔离性（保证隔离性才能实现并行控制）。</p>
+<p>隔离性是指，多个事务可能并发执行，数据库要保证：</p>
+<ul>
+<li>对于任意两个事务 T<sub>i</sub> 和 T<sub>j</sub> 来说，T<sub>i</sub> <em>看起来</em> 要么是 T<sub>j</sub> 在 T<sub>i</sub> 开始之前就已经完成了执行，要么是 T<sub>j</sub> 在 T<sub>i</sub> 完成之后才开始执行。</li>
+</ul>
+<p>从而实现，每个事务都不知道系统中同时执行的其他事务。</p>
+<hr>
+<h4 id="事务状态"><a href="#事务状态" class="headerlink" title="事务状态"></a>事务状态</h4><p>为了跟准确地描述一个事务执行了多少，我们引入事务状态。</p>
+<ul>
+<li>Active：初始状态，事务在执行过程中处于该状态。</li>
+<li>Partially committed：在执行了最后一个语句之后，事务进入该状态。</li>
+<li>Failed：在发现正常执行无法继续后，事务进入该状态。</li>
+<li>Aborted：在事务被回滚（roll back）且数据库恢复到事务开始之前的状态后，事务进入中止状态。</li>
+<li>Committed：在当前事务成功完成执行后，事务进入该状态。</li>
+</ul>
+<p><img src="/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%93-%E4%BA%8B%E5%8A%A1/state.png" alt="states"></p>
+<p>特别地，我们需要小心：可观察的外部写操作（比如写入用户的屏幕，一旦发生，就不能撤销）。大多数系统允许这种写操作仅在事务进入Committed状态后才进行。</p>
+<h3 id="调度"><a href="#调度" class="headerlink" title="调度"></a>调度</h3><p><strong>调度（Schedule）</strong>是指一系列指令，并指定并发事务的指令在系统中执行的时间顺序。</p>
+<p>且一个调度要满足：</p>
+<ul>
+<li>对于一组事务的调度必须包含这些事务中的所有指令。</li>
+<li>必须保持各个事务中指令的相对顺序（</li>
+<li>成功完成执行的事务，其最后一个语句将是commit指令。</li>
+<li>未成功完成执行的事务，其最后一个语句将是abort指令。</li>
+</ul>
+<p>举一个例子：T1事务是从A转账50元到B，T2事务是A转账10%到B。下图的调度1是一个<strong>序列化的（serial）</strong>调度。</p>
+<p><img src="/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%93-%E4%BA%8B%E5%8A%A1/schedule1.png" alt="schedule1"></p>
+<hr>
+<h4 id="可序列化"><a href="#可序列化" class="headerlink" title="可序列化"></a>可序列化</h4><blockquote>
+<p>等价（equivalent）有很多种，因此对应的可序列化（Serializable）也有多种。这里我们指的都是冲突等价和冲突可序列化。</p>
+</blockquote>
+<p>如果一个调度是等价于一个序列调度，则称为<strong>可序列化的（serializable）</strong>。所谓等价，通俗地讲，则是两个调度的最终结果相同。之后我们会给出严格定义。</p>
+<p>下图中，调度3与调度1等价，是可序列化的调度。</p>
+<p><img src="/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%93-%E4%BA%8B%E5%8A%A1/schedule3.png" alt="schedule3"></p>
+<p>我们只关心read和write两类操作，特别是它们执行的先后顺序，忽略其他类型的操作。大多数时候出问题都是因为：最新值还未写入数据库，而另一事务已经提前读取或写入了数据。但需要指出的是：可能存在两个调度，它们产生相同的结果，但它们不是冲突等价的（相当于是“充分条件，但不必要”）。</p>
+<p>我们考虑调度 S 中的两个连续的指令 I 、 J 。</p>
+<p>如果 I 、 J 分别作用于不同的数据，那么它们的先后顺序不影响数据结果，怎么样都可以，不冲突。</p>
+<p>如果 I 、 J 分别作用于同一个数据 Q ，那么有4种可能情况：</p>
+<ul>
+<li><p>I &#x3D; read(Q), J &#x3D; read(Q) </p>
+</li>
+<li><p>I &#x3D; read(Q), J &#x3D; <strong>write(Q)</strong> </p>
+</li>
+<li><p>I &#x3D; <strong>write(Q)</strong>, J &#x3D; read(Q) </p>
+</li>
+<li><p>I &#x3D; <strong>write(Q)</strong>, J &#x3D; <strong>write(Q)</strong></p>
+</li>
+</ul>
+<p> I 、 J 同时读取一个数据并不在意顺序，不冲突。但是 I 、 J 只要有至少一个是write操作，就会<strong>冲突（conflict）</strong>，需要考虑其执行顺序。</p>
+<p>从而我们可以严格的定义等价：</p>
+<p>如果一个调度 S 可以通过一系列非冲突指令的交换转换为另一个调度 S’，我们称 S 和 S’ 是<strong>冲突等价（Conflict Equivalent）</strong>的。</p>
+<hr>
+<h4 id="可恢复性"><a href="#可恢复性" class="headerlink" title="可恢复性"></a>可恢复性</h4><blockquote>
+<p>Transaction T<sub>j</sub> is <strong>dependent</strong> on T<sub>i</sub>  means that T<sub>j</sub> has read data written by T<sub>i</sub> .</p>
+</blockquote>
+<p>到目前为止，我们都在假定事务不会失败的情况下讨论，但实际情况是事务失败总会发生。为了保证原子性，我们就必须撤销该事务的所有操作。但如果T<sub>i</sub> 失败了，且 T<sub>j</sub> 依赖于 T<sub>i</sub> ，那么我们需要也将 T<sub>j</sub> 撤销。 </p>
+<p>例如下图中，调度9中的T<sub>7</sub>使用了T<sub>6</sub>写入的A值，如果T<sub>6</sub>结果出问题，则T<sub>7</sub>结果也有问题。所以，T<sub>7</sub>依赖于T<sub>6 </sub> 。</p>
+<p><img src="/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%93-%E4%BA%8B%E5%8A%A1/schedule9.png" alt="schedule9"></p>
+<p><strong>可恢复调度（recoverable schedule）</strong>应当满足：</p>
+<ul>
+<li>如果一个事务 T<sub>j</sub> 读取了之前由事务 T<sub>i</sub> 写入的数据项，那么事务 T<sub>i</sub> 将在事务 T<sub>j</sub> 提交之前提交。</li>
+</ul>
+<p><img src="/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%93-%E4%BA%8B%E5%8A%A1/Users\Keats\Desktop\Erewhon\Yanxu-Blog\source_posts\post\recoverable.png" alt="recoverable"></p>
+<p>可恢复性确保了：如果一个事务要用其他事务的数据项，则一定用的是最终数据，而不是过程中的数据。这样避免了一个数据出错导致一系列数据出错（级联效应）。</p>
+<hr>
+<h4 id="无级联的"><a href="#无级联的" class="headerlink" title="无级联的"></a>无级联的</h4><p>像上面所所的，一个事务的失败可能触发一系列事务的回滚。这种情况称为<strong>级联回滚（cascading rollback）</strong>。这样的情况会大大降低数据库的性能。</p>
+<p>所以我们希望调度是<strong>无级联的（cascadeless）</strong>，亦即：</p>
+<ul>
+<li>任意一对事务 T<sub>i</sub> 和 T<sub>j</sub> ，如果一个事务 T<sub>j</sub> 读取了之前由事务 T<sub>i</sub> 写入的数据项，那么事务 T<sub>i</sub> 将在事务 T<sub>j</sub> 提交之前提交。</li>
+</ul>
+<p><img src="/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%93-%E4%BA%8B%E5%8A%A1/Users\Keats\Desktop\Erewhon\Yanxu-Blog\source_posts\post\cascadeless.png" alt="cascadeless"></p>
+<p>不难发现，无级联则可恢复。</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://xht03.github.io/2024/05/06/RV64%E6%B5%81%E6%B0%B4%E7%BA%BFCPU/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="xht03">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="延绪的水上书">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/05/06/RV64%E6%B5%81%E6%B0%B4%E7%BA%BFCPU/" class="post-title-link" itemprop="url">RV64流水线CPU</a>
         </h2>
 
         <div class="post-meta">
@@ -176,7 +358,7 @@
               <span class="post-meta-item-text">发表于</span>
               
 
-              <time title="创建时间：2024-03-06 08:04:28 / 修改时间：16:36:01" itemprop="dateCreated datePublished" datetime="2024-03-06T08:04:28+08:00">2024-03-06</time>
+              <time title="创建时间：2024-05-06 13:35:35 / 修改时间：19:48:18" itemprop="dateCreated datePublished" datetime="2024-05-06T13:35:35+08:00">2024-05-06</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -197,8 +379,8 @@
       </span>
       <span class="post-meta-item-text">Disqus：</span>
     
-    <a title="disqus" href="/2024/03/06/RV64%E5%8D%95%E5%91%A8%E6%9C%9FCPU%E8%AE%BE%E8%AE%A1/#disqus_thread" itemprop="discussionUrl">
-      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2024/03/06/RV64单周期CPU设计/" itemprop="commentCount"></span>
+    <a title="disqus" href="/2024/05/06/RV64%E6%B5%81%E6%B0%B4%E7%BA%BFCPU/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2024/05/06/RV64流水线CPU/" itemprop="commentCount"></span>
     </a>
   </span>
   
@@ -213,7 +395,397 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <h3 id="整体架构"><a href="#整体架构" class="headerlink" title="整体架构"></a>整体架构</h3><p><img src="/2024/03/06/RV64%E5%8D%95%E5%91%A8%E6%9C%9FCPU%E8%AE%BE%E8%AE%A1/RISC-V.png" alt="架构图"></p>
+          <h3 id="整体架构"><a href="#整体架构" class="headerlink" title="整体架构"></a>整体架构</h3><blockquote>
+<p><em>Computer Organization and Design The Hardware Software Interface [RISC-V Edition]</em></p>
+</blockquote>
+<p><img src="/2024/05/06/RV64%E6%B5%81%E6%B0%B4%E7%BA%BFCPU/" alt="架构图"><img src="/2024/05/06/RV64%E6%B5%81%E6%B0%B4%E7%BA%BFCPU/Users\Keats\Desktop\Erewhon\Yanxu-Blog\source_posts\RV64流水线CPU\architecture.png" alt="architecture"></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://xht03.github.io/2024/04/16/HTML%E7%AE%80%E6%98%8E%E6%95%99%E7%A8%8B/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="xht03">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="延绪的水上书">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/04/16/HTML%E7%AE%80%E6%98%8E%E6%95%99%E7%A8%8B/" class="post-title-link" itemprop="url">HTML简明教程</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2024-04-16 15:37:49 / 修改时间：17:58:14" itemprop="dateCreated datePublished" datetime="2024-04-16T15:37:49+08:00">2024-04-16</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Web-Development/" itemprop="url" rel="index"><span itemprop="name">Web Development</span></a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2024/04/16/HTML%E7%AE%80%E6%98%8E%E6%95%99%E7%A8%8B/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2024/04/16/HTML简明教程/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h3 id="基本结构"><a href="#基本结构" class="headerlink" title="基本结构"></a>基本结构</h3><blockquote>
+<p>添加注释快捷键：<code>ctrl + /</code></p>
+</blockquote>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">&lt;!-- DOCTYPE：告诉浏览器我们使用什么规范，省略亦可 --&gt;</span></span><br><span class="line"><span class="comment">&lt;!-- 写在html标签里的内容才会显示 --&gt;</span></span><br><span class="line"><span class="meta">&lt;!DOCTYPE <span class="keyword">html</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">html</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">head</span>&gt;</span></span><br><span class="line">    <span class="comment">&lt;!-- meta：描述性标签，描述网页的一些信息，一般用来做SEO（搜索引擎优化） --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">meta</span> <span class="attr">charset</span>=<span class="string">&quot;UTF-8&quot;</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">meta</span> <span class="attr">name</span>=<span class="string">&quot;keyword&quot;</span> <span class="attr">content</span>=<span class="string">&quot;HTML example&quot;</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">meta</span> <span class="attr">name</span>=<span class="string">&quot;description&quot;</span> <span class="attr">content</span>=<span class="string">&quot;This is an example of HTML&quot;</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">title</span>&gt;</span>我的第一个HTML页面<span class="tag">&lt;/<span class="name">title</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">head</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">body</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">h1</span>&gt;</span>欢迎来到我的网页<span class="tag">&lt;/<span class="name">h1</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">p</span>&gt;</span>Hello World!<span class="tag">&lt;/<span class="name">p</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">p</span>&gt;</span>这是一个简单的HTML页面。<span class="tag">&lt;/<span class="name">p</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">body</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">html</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><code>&lt;html&gt;</code>称为开放标签，<code>&lt;/html&gt;</code>称为闭合标签。</li>
+<li><code>&lt;meta&gt; charset=&quot;UTF-8&quot;</code>称为自闭合标签。</li>
+<li><code>title</code>是指浏览器顶部页眉方框所显示的，并不是页面内的标题。</li>
+</ul>
+<p><img src="/2024/04/16/HTML%E7%AE%80%E6%98%8E%E6%95%99%E7%A8%8B/Users\Keats\Desktop\Erewhon\Yanxu-Blog\source_posts\HTML简明教程\helloworld.png" alt="hello world"></p>
+<h3 id="标签"><a href="#标签" class="headerlink" title="标签"></a>标签</h3><blockquote>
+<p>输入<code>p</code>并按<code>tab</code>键，会自动生成<code>&lt;p&gt;&lt;/p&gt;</code>标签。其余类似。</p>
+</blockquote>
+<h4 id="基本标签"><a href="#基本标签" class="headerlink" title="基本标签"></a>基本标签</h4><ul>
+<li><code>&lt;h1&gt;&lt;/h1&gt;</code>：标题</li>
+<li><code>&lt;p&gt;&lt;/p&gt;</code>：段落</li>
+<li><code>&lt;hr&gt;</code>或<code>&lt;hr/&gt;</code>：水平线</li>
+<li><code>&lt;br&gt;</code>：换行</li>
+<li><code>&lt;b&gt;&lt;/b&gt;</code>或<code>&lt;strong&gt;&lt;/strong&gt;</code>：粗体</li>
+<li><code>&lt;i&gt;&lt;/i&gt;</code>或<code>&lt;em&gt;&lt;/em&gt;</code>：斜体</li>
+<li><code>&amp;...;</code>：转义字符（<code>&amp;</code>表示转义）</li>
+<li><code>&amp;nbsp;</code>：空格</li>
+<li><code>&lt;img src=&quot;&quot; alt=&quot;&quot;&gt;</code>：图像</li>
+</ul>
+<blockquote>
+<ol>
+<li>空格键无论多少，都视为一个空格。多空格需用转义字符<code>&amp;nbsp</code>。</li>
+<li>图像引用中<code>src</code>和<code>alt</code>必不可少。其余字段可以添加或省略。</li>
+</ol>
+</blockquote>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;!DOCTYPE <span class="keyword">html</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">html</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">head</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">meta</span> <span class="attr">charset</span>=<span class="string">&quot;UTF-8&quot;</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">title</span>&gt;</span>基本标签<span class="tag">&lt;/<span class="name">title</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">head</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">body</span>&gt;</span></span><br><span class="line">    <span class="comment">&lt;!-- 标题标签 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">h1</span>&gt;</span>欢迎来到我的网页<span class="tag">&lt;/<span class="name">h1</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">h2</span>&gt;</span>一首小诗<span class="tag">&lt;/<span class="name">h2</span>&gt;</span></span><br><span class="line">    <span class="comment">&lt;!-- 段落标签 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">p</span>&gt;</span>Do not go gentle into that good night<span class="tag">&lt;/<span class="name">p</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">p</span>&gt;</span>Old age should burn and rave at close of day<span class="tag">&lt;/<span class="name">p</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">p</span>&gt;</span>Rage, rage against the dying of the light<span class="tag">&lt;/<span class="name">p</span>&gt;</span></span><br><span class="line">    <span class="comment">&lt;!-- 水平线 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">hr</span>&gt;</span></span><br><span class="line">    <span class="comment">&lt;!-- 换行 --&gt;</span></span><br><span class="line">    两只老虎	两只老虎	跑得快 <span class="tag">&lt;<span class="name">br</span>&gt;</span></span><br><span class="line">    一只没有眼睛	一直没有尾巴 <span class="tag">&lt;<span class="name">br</span>&gt;</span></span><br><span class="line">    真奇怪		真奇怪 <span class="tag">&lt;<span class="name">br</span>&gt;</span></span><br><span class="line">    <span class="comment">&lt;!-- 粗体与斜体 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">b</span>&gt;</span> I love you. <span class="tag">&lt;/<span class="name">b</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">strong</span>&gt;</span> I love you. <span class="tag">&lt;/<span class="name">strong</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">i</span>&gt;</span> I miss you. <span class="tag">&lt;/<span class="name">i</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">em</span>&gt;</span> I miss you. <span class="tag">&lt;/<span class="name">em</span>&gt;</span></span><br><span class="line">    <span class="comment">&lt;!-- 特殊符号 --&gt;</span></span><br><span class="line">    <span class="symbol">&amp;copy;</span> 版权归延绪所有（版权符号） <span class="tag">&lt;<span class="name">br</span>&gt;</span></span><br><span class="line">    <span class="symbol">&amp;lt;</span> <span class="symbol">&amp;gt;</span> <span class="symbol">&amp;amp;</span> <span class="symbol">&amp;quot;</span> <span class="symbol">&amp;nbsp;</span>（小于、大于、与、引号、空格） <span class="tag">&lt;<span class="name">br</span>&gt;</span></span><br><span class="line">    空<span class="symbol">&amp;nbsp;</span><span class="symbol">&amp;nbsp;</span><span class="symbol">&amp;nbsp;</span>格 <span class="tag">&lt;<span class="name">br</span>&gt;</span></span><br><span class="line">    <span class="comment">&lt;!-- 图像标签 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">img</span> <span class="attr">src</span>=<span class="string">&quot;../resources/images/SummerGhost3.png&quot;</span> <span class="attr">alt</span>=<span class="string">&quot;替代文字&quot;</span> <span class="attr">title</span>=<span class="string">&quot;悬停文字&quot;</span> <span class="attr">width</span>=<span class="string">&quot;960&quot;</span> <span class="attr">height</span>=<span class="string">&quot;540&quot;</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">body</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">html</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/04/16/HTML%E7%AE%80%E6%98%8E%E6%95%99%E7%A8%8B/Users\Keats\Desktop\Erewhon\Yanxu-Blog\source_posts\HTML简明教程\tags.png" alt="tags"></p>
+<h4 id="超链接标签"><a href="#超链接标签" class="headerlink" title="超链接标签"></a>超链接标签</h4>
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://xht03.github.io/2024/04/01/PostgreSQL%E6%91%98%E8%A6%81/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="xht03">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="延绪的水上书">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/04/01/PostgreSQL%E6%91%98%E8%A6%81/" class="post-title-link" itemprop="url">PostgreSQL摘要</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2024-04-01 13:34:43" itemprop="dateCreated datePublished" datetime="2024-04-01T13:34:43+08:00">2024-04-01</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2024-04-24 14:22:13" itemprop="dateModified" datetime="2024-04-24T14:22:13+08:00">2024-04-24</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/The-Introduction-to-Databases/" itemprop="url" rel="index"><span itemprop="name">The Introduction to Databases</span></a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2024/04/01/PostgreSQL%E6%91%98%E8%A6%81/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2024/04/01/PostgreSQL摘要/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p> Relational Databases 关系数据库</p>
+<p>Database Design </p>
+<p>Data Storage and Query</p>
+<p>Transaction Management</p>
+<h3 id="Relational-Model"><a href="#Relational-Model" class="headerlink" title="Relational Model"></a>Relational Model</h3><h4 id="Structure-结构"><a href="#Structure-结构" class="headerlink" title="Structure 结构"></a>Structure 结构</h4><blockquote>
+<p>在 <em>关系模型</em> 中：每一个表是一个关系，每一行是一个元组，每一列是一个属性。</p>
+</blockquote>
+<ul>
+<li>A relational database consists of a collection of tables.</li>
+<li>A row in a table represents a relationship among a set of values.</li>
+<li>The order in which tuples appear in a relation is irrelevant, since a relation is a set of tuples .</li>
+</ul>
+<h4 id="Domain-域"><a href="#Domain-域" class="headerlink" title="Domain 域"></a>Domain 域</h4><blockquote>
+<p>域就是属性的值域（取值集合）。原子性意为“<strong>不可再分</strong>”。</p>
+</blockquote>
+<ul>
+<li><p>For each attribute of a relation, there is a set of permitted values , called the domain of that attribute.</p>
+</li>
+<li><p>For all relations r , the domains of all attributes of <em>r</em> be <strong>atomic</strong>.</p>
+</li>
+</ul>
+<h4 id="Null-Value-空值"><a href="#Null-Value-空值" class="headerlink" title="Null Value 空值"></a>Null Value 空值</h4><ul>
+<li>空值是一种特殊值，表示：取值未知或不存在。</li>
+<li>任何域都含有空值。</li>
+</ul>
+<h4 id="Schema-模式"><a href="#Schema-模式" class="headerlink" title="Schema 模式"></a>Schema 模式</h4><p>Database schema : the logical design of the database.</p>
+<p>Database instance : a snapshot of the data in the database at a given instant in time.</p>
+<blockquote>
+<p>例如：<code>instructor = (ID, name, dept_name, salary)</code></p>
+</blockquote>
+<h4 id="Keys-键"><a href="#Keys-键" class="headerlink" title="Keys 键"></a>Keys 键</h4><blockquote>
+<p>We must have a way to specify how tuples within a given relation are distinguished.</p>
+</blockquote>
+<ul>
+<li><strong>superkey</strong> : A superkey is a set of one or more attributes that, taken collectively, allow us to identify uniquely a tuple in the relation.</li>
+<li><strong>candidate key</strong> : The superkeys, for which no proper subset is a superkey, are called candidate keys.</li>
+<li><strong>primary key</strong> : A primary key is a candidate key that is chosen by the database designer as the principal means of identifying tuples within a relation.</li>
+<li><strong>foreign key</strong> : A relation, may include among its attributes the primary key of another relation. This attribute is called a foreign key.</li>
+</ul>
+<blockquote>
+<p>注意：</p>
+<ol>
+<li><p>A superkey may contain extraneous attributes.</p>
+</li>
+<li><p>It is possible that several distinct sets of attributes could<br>serve as a candidate key.</p>
+</li>
+</ol>
+</blockquote>
+<h4 id="Schema-Diagrams-模式图"><a href="#Schema-Diagrams-模式图" class="headerlink" title="Schema Diagrams 模式图"></a>Schema Diagrams 模式图</h4><blockquote>
+<p>Schema diagram &#x3D; database schema + primary key and foreign key dependencies</p>
+</blockquote>
+<p><img src="/2024/04/01/PostgreSQL%E6%91%98%E8%A6%81/Users\Keats\Desktop\Erewhon\Yanxu-Blog\source_posts\PostgreSQL摘要\schema_diagrams.png" alt="Schema Diagrams"></p>
+<h4 id="Query-Languages"><a href="#Query-Languages" class="headerlink" title="Query Languages"></a>Query Languages</h4><p>A query language is a language in which a user requests information from the database.</p>
+<blockquote>
+<p>Query Languages 通常有两类：</p>
+<ul>
+<li><em>procedural</em>：指定查询什么数据以及如何获取数据。</li>
+<li><em>declarative</em>：只需指定查询什么数据，不必指定如何查询数据。</li>
+</ul>
+</blockquote>
+<h3 id="Relational-Algebra"><a href="#Relational-Algebra" class="headerlink" title="Relational Algebra"></a>Relational Algebra</h3><h3 id="SQL"><a href="#SQL" class="headerlink" title="SQL"></a>SQL</h3><h4 id="What-is-SQL"><a href="#What-is-SQL" class="headerlink" title="What is SQL"></a>What is SQL</h4><p>数据库系统提供：</p>
+<ul>
+<li><em>data-definition language</em> (DDL)：定义数据库模式。</li>
+<li><em>data-manipulation language</em> (DML)：表达数据库查询和更新。</li>
+</ul>
+<p>但实际上，<em>DDL</em> 和 <em>DML</em> 并不是两种分离的语言。相反地，它们简单地构成单一的数据库语言，比如：SQL。</p>
+<blockquote>
+<p>查询 (query) 是对所求信息进行检索的语句。DML中涉及信息检索的部分称作 <em>query language</em> 。但实践中常将 query language 和 DML 视为同义词。</p>
+</blockquote>
+<h4 id="Domain-Types"><a href="#Domain-Types" class="headerlink" title="Domain Types"></a>Domain Types</h4><ul>
+<li><code>char(n)</code>：固定长度字符串（长度为 n ）</li>
+<li><code>varchar(n)</code>：变长度字符串（最大长度为 n ）</li>
+<li><code>int</code>：整数</li>
+<li><code>smallint</code>：小整数</li>
+<li><code>numeric(p, d)</code>：固定点数（有效数字 p 位，小数点后 d 位）</li>
+<li><code>real</code>、<code>double percision</code>：实数、双精度浮点数</li>
+<li><code>float(n)</code>：浮点数（有效数字 n 位）</li>
+</ul>
+<h4 id="Common-Operation"><a href="#Common-Operation" class="headerlink" title="Common Operation"></a>Common Operation</h4><blockquote>
+<p>创建 table</p>
+</blockquote>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> Users(</span><br><span class="line">	user_id <span class="type">char</span>(<span class="number">6</span>) <span class="keyword">NOT</span> <span class="keyword">Null</span>,</span><br><span class="line">	username <span class="type">varchar</span>(<span class="number">30</span>),</span><br><span class="line">	realname <span class="type">varchar</span>(<span class="number">30</span>),</span><br><span class="line">	age <span class="type">int</span>,</span><br><span class="line">	password <span class="type">varchar</span>(<span class="number">30</span>),</span><br><span class="line">	permisson <span class="type">int</span></span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>创建 procedure</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="Relational-Database-Design"><a href="#Relational-Database-Design" class="headerlink" title="Relational Database Design"></a>Relational Database Design</h3><h4 id="函数依赖"><a href="#函数依赖" class="headerlink" title="函数依赖"></a>函数依赖</h4><blockquote>
+<p>函数依赖本质上就是：两个属性之间存在单射</p>
+</blockquote>
+<p>设R是一个关系模式，X 和 Y 是 R 的属性集的子集。如果对于 R 的任意一个关系r，对于r中的任意两个元组 t1 和 t2 ，只要 t1 和 t2 在 X 上的值相等，那么它们在 Y 上的值也相等，那么我们就说 Y 在 X 上函数依赖，记作 <code>X-&gt;Y</code> 。</p>
+<p>K is a superkey for R &harr; <code>K -&gt; R</code></p>
+<p>K is a candidate key for R &harr; <code>K-&gt;R</code> and no &alpha;K,   R</p>
+<h4 id="第一范式"><a href="#第一范式" class="headerlink" title="第一范式"></a>第一范式</h4><p>R 满足第一范式 &harr; R的所有属性的域都是原子的。</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://xht03.github.io/2024/03/06/RV64%E5%8D%95%E5%91%A8%E6%9C%9FCPU/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="xht03">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="延绪的水上书">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/03/06/RV64%E5%8D%95%E5%91%A8%E6%9C%9FCPU/" class="post-title-link" itemprop="url">RV64单周期CPU</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2024-03-06 08:04:28" itemprop="dateCreated datePublished" datetime="2024-03-06T08:04:28+08:00">2024-03-06</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2024-05-13 16:09:37" itemprop="dateModified" datetime="2024-05-13T16:09:37+08:00">2024-05-13</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/ICS/" itemprop="url" rel="index"><span itemprop="name">ICS</span></a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2024/03/06/RV64%E5%8D%95%E5%91%A8%E6%9C%9FCPU/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2024/03/06/RV64单周期CPU/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h3 id="整体架构"><a href="#整体架构" class="headerlink" title="整体架构"></a>整体架构</h3><p><img src="/2024/03/06/RV64%E5%8D%95%E5%91%A8%E6%9C%9FCPU/RISC-V.png" alt="架构图"></p>
 <p>我设计的RV64-CPU总共有14个模块：</p>
 <ul>
 <li>PC：更新下一条指令地址。</li>
@@ -244,8 +816,8 @@
 <li>Halt：停止执行</li>
 </ul>
 <p>我没有设置MemtoReg信号。这是因为：目前，MemtoReg信号和MemRead信号一致，读取内存一定是存进寄存器里。</p>
-<h3 id="RISC-V-指令集"><a href="#RISC-V-指令集" class="headerlink" title="RISC-V 指令集 "></a><a target="_blank" rel="noopener" href="https://www.cs.sfu.ca/~ashriram/Courses/CS295/assets/notebooks/RISCV/RISCV_CARD.pdf">RISC-V 指令集 </a></h3><p>我设计的CPU支持所有RV32I Base Integer Instruction（除<code>ecall</code>、<code>ebreak</code>外）。</p>
-<p><img src="/2024/03/06/RV64%E5%8D%95%E5%91%A8%E6%9C%9FCPU%E8%AE%BE%E8%AE%A1/ISA.png" alt="指令集"></p>
+<h3 id="RISC-V指令集"><a href="#RISC-V指令集" class="headerlink" title="RISC-V指令集 "></a><a target="_blank" rel="noopener" href="https://www.cs.sfu.ca/~ashriram/Courses/CS295/assets/notebooks/RISCV/RISCV_CARD.pdf">RISC-V指令集 </a></h3><p>我设计的CPU支持所有RV32I Base Integer Instruction（除<code>ecall</code>、<code>ebreak</code>外）。</p>
+<p><img src="/2024/03/06/RV64%E5%8D%95%E5%91%A8%E6%9C%9FCPU/ISA.png" alt="指令集"></p>
 <h3 id="代码实现"><a href="#代码实现" class="headerlink" title="代码实现"></a>代码实现</h3><h4 id="PC"><a href="#PC" class="headerlink" title="PC"></a>PC</h4><blockquote>
 <p>在时钟上升沿更新PC值。</p>
 </blockquote>
@@ -405,10 +977,10 @@
 <figure class="highlight verilog"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">module</span> sim();</span><br><span class="line">    <span class="keyword">logic</span> clk;</span><br><span class="line">    arch test(<span class="variable">.CLK</span>(clk));</span><br><span class="line"></span><br><span class="line">    <span class="keyword">initial</span> <span class="keyword">begin</span></span><br><span class="line">        <span class="keyword">repeat</span> (<span class="number">20</span>) <span class="keyword">begin</span></span><br><span class="line">            clk = <span class="number">0</span>;</span><br><span class="line">            #<span class="number">5</span>;</span><br><span class="line">            clk = <span class="number">1</span>;</span><br><span class="line">            #<span class="number">5</span>;</span><br><span class="line">        <span class="keyword">end</span></span><br><span class="line">        <span class="built_in">$finish</span>;</span><br><span class="line">    <span class="keyword">end</span></span><br><span class="line">    </span><br><span class="line">    <span class="keyword">initial</span> <span class="keyword">begin</span></span><br><span class="line">        <span class="built_in">$dumpfile</span>(<span class="string">&quot;test.vcd&quot;</span>);</span><br><span class="line">        <span class="built_in">$dumpvars</span>;</span><br><span class="line">    <span class="keyword">end</span></span><br><span class="line"><span class="keyword">endmodule</span></span><br></pre></td></tr></table></figure>
 
 <p>我们可以看到：指令都被正确解析。</p>
-<p><img src="/2024/03/06/RV64%E5%8D%95%E5%91%A8%E6%9C%9FCPU%E8%AE%BE%E8%AE%A1/wave1.png" alt="波形图"></p>
+<p><img src="/2024/03/06/RV64%E5%8D%95%E5%91%A8%E6%9C%9FCPU/wave1.png" alt="波形图"></p>
 <p>我们查看Regfile中的5号、7号寄存器。它们都被正确地写入和读取。</p>
-<p><img src="/2024/03/06/RV64%E5%8D%95%E5%91%A8%E6%9C%9FCPU%E8%AE%BE%E8%AE%A1/wave2.png" alt="波形图2"></p>
-
+<p><img src="/2024/03/06/RV64%E5%8D%95%E5%91%A8%E6%9C%9FCPU/wave2.png" alt="波形图2"></p>
+<h3 id="注记"><a href="#注记" class="headerlink" title="注记"></a>注记</h3>
       
     </div>
 
@@ -1106,7 +1678,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2024-03-17 12:19:51" itemprop="dateModified" datetime="2024-03-17T12:19:51+08:00">2024-03-17</time>
+                <time title="修改时间：2024-03-17 14:56:27" itemprop="dateModified" datetime="2024-03-17T14:56:27+08:00">2024-03-17</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1209,6 +1781,11 @@
 <p><em>请在目标分支执行<code>git merge</code>，使<strong>目标分支</strong>同步<strong>源分支</strong>的更改</em></p>
 </blockquote>
 <hr>
+</li>
+<li><p>撤销修改：<code>git checkout .</code></p>
+<blockquote>
+<p>回到最后一次提交的状态，撤销后续的修改。</p>
+</blockquote>
 </li>
 <li><p>回退到某次提交：<code>git checkout [commit-hash]</code></p>
 <blockquote>
@@ -1466,12 +2043,12 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">6</span>
+          <span class="site-state-item-count">10</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
-        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-count">6</span>
         <span class="site-state-item-name">分类</span>
       </div>
       <div class="site-state-item site-state-tags">
