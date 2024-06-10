@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"xht03.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":"flat"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":true,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="引言在数据库中，join 是经常使用的操作，但其工作量也可能是很大的。那么如何高效地完成 join 操作呢？ 这篇 blog 将介绍：  常见的 join 实现方式 如何在 Postgresql 源代码中实现 block nested loop join  常见 join 算法Simple Nested-Loop Join简单来说，Simple Nested-Loop Join 就是一个双层 fo">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Block Nested Loop Join">
+<meta property="og:url" content="http://xht03.github.io/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AE%9E%E9%AA%8C/index.html">
+<meta property="og:site_name" content="延绪的水上书">
+<meta property="og:description" content="引言在数据库中，join 是经常使用的操作，但其工作量也可能是很大的。那么如何高效地完成 join 操作呢？ 这篇 blog 将介绍：  常见的 join 实现方式 如何在 Postgresql 源代码中实现 block nested loop join  常见 join 算法Simple Nested-Loop Join简单来说，Simple Nested-Loop Join 就是一个双层 fo">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://xht03.github.io/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AE%9E%E9%AA%8C/Index-Nested-Loop-Join.jpg">
+<meta property="og:image" content="http://xht03.github.io/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AE%9E%E9%AA%8C/Block-Nested-Loop-Join.jpg">
+<meta property="og:image" content="http://xht03.github.io/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AE%9E%E9%AA%8C/select.png">
+<meta property="og:image" content="http://xht03.github.io/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AE%9E%E9%AA%8C/1024.png">
+<meta property="article:published_time" content="2024-06-09T12:44:52.000Z">
+<meta property="article:modified_time" content="2024-06-10T02:53:16.916Z">
+<meta property="article:author" content="xht03">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://xht03.github.io/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AE%9E%E9%AA%8C/Index-Nested-Loop-Join.jpg">
+
+<link rel="canonical" href="http://xht03.github.io/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AE%9E%E9%AA%8C/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>Block Nested Loop Join | 延绪的水上书</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">延绪的水上书</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://xht03.github.io/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AE%9E%E9%AA%8C/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="xht03">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="延绪的水上书">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Block Nested Loop Join
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2024-06-09 20:44:52" itemprop="dateCreated datePublished" datetime="2024-06-09T20:44:52+08:00">2024-06-09</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2024-06-10 10:53:16" itemprop="dateModified" datetime="2024-06-10T10:53:16+08:00">2024-06-10</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/The-Introduction-to-Database/" itemprop="url" rel="index"><span itemprop="name">The Introduction to Database</span></a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AE%9E%E9%AA%8C/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2024/06/09/数据库实验/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h3 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h3><p>在数据库中，join 是经常使用的操作，但其工作量也可能是很大的。那么如何高效地完成 join 操作呢？</p>
+<p>这篇 blog 将介绍：</p>
+<ul>
+<li>常见的 join 实现方式</li>
+<li>如何在 Postgresql 源代码中实现 block nested loop join</li>
+</ul>
+<h3 id="常见-join-算法"><a href="#常见-join-算法" class="headerlink" title="常见 join 算法"></a>常见 join 算法</h3><h4 id="Simple-Nested-Loop-Join"><a href="#Simple-Nested-Loop-Join" class="headerlink" title="Simple Nested-Loop Join"></a>Simple Nested-Loop Join</h4><p>简单来说，Simple Nested-Loop Join 就是一个双层 for 循环 ，通过循环外层表的行数据，逐个与内层表的所有行数据进行比较来获取结果。</p>
+<p>用外代码描述大致如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> (each tuple i in outer relation) &#123;</span><br><span class="line">	<span class="keyword">for</span> (each tuple j in inner relation) &#123;</span><br><span class="line">        <span class="keyword">if</span> (join_condition(tuple i, tuple j) is <span class="literal">true</span>)</span><br><span class="line">      		emit (tuple i, tuple j)</span><br><span class="line">       	<span class="keyword">else</span></span><br><span class="line">      		<span class="keyword">continue</span></span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p><strong>特点：</strong></p>
+<p>Nested-Loop Join 简单粗暴容易理解，就是通过双层循环比较数据来获得结果，但是这种算法显然太过于粗鲁，如果每个表有1万条数据，那么对数据比较的次数&#x3D;1万 * 1万 &#x3D; 1亿次，很显然这种查询效率会非常慢。</p>
+<p>当然，数据库肯定不会这么粗暴地 join，所以就出现了后面的两种对Nested-Loop Join 优化算法。在执行 join 查询时，数据库会根据情况选择后面的两种 join 优化算法的进行join查询。</p>
+<hr>
+<h4 id="Index-Nested-Loop-Join"><a href="#Index-Nested-Loop-Join" class="headerlink" title="Index Nested-Loop Join"></a>Index Nested-Loop Join</h4><p>Index Nested-Loop Join 的优化思路主要是：减少内层表数据的匹配次数。</p>
+<p>简单来说，Index Nested-Loop Join 就是通过外层表匹配条件，直接与内层表索引进行匹配，避免和内层表的每条记录去进行比较，这样极大的减少了对内层表的匹配次数，从原来的 “匹配次数&#x3D;外层表行数 * 内层表行数”，变成了 “外层表的行数 * 内层表索引的高度”，极大的提升了 join 的性能。</p>
+<p><img src="/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AE%9E%E9%AA%8C/Index-Nested-Loop-Join.jpg" alt="Index Nested-Loop Join"></p>
+<p><strong>但是</strong>，Index Nested-Loop Join 算法的前提是：匹配的字段必须建立了索引。</p>
+<hr>
+<h4 id="Block-Nested-Loop-join"><a href="#Block-Nested-Loop-join" class="headerlink" title="Block Nested-Loop join"></a>Block Nested-Loop join</h4><p>Block Nested-Loop Join 其优化思路是：减少内层表的扫表次数。</p>
+<p>Block Nested-Loop Join 算法意在通过一次性缓存外层表的多条数据，以此来减少内层表的扫表次数，从而达到提升性能的目的。</p>
+<p><img src="/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AE%9E%E9%AA%8C/Block-Nested-Loop-Join.jpg" alt="Block Nested-Loop Join"></p>
+<p>如果无法使用 Index Nested-Loop Join 时候，一般都会使用 Block Nested-Loop Join 算法。</p>
+<h3 id="PostgreSQL-实验"><a href="#PostgreSQL-实验" class="headerlink" title="PostgreSQL 实验"></a>PostgreSQL 实验</h3><h4 id="准备工作"><a href="#准备工作" class="headerlink" title="准备工作"></a>准备工作</h4><ol>
+<li><p>下载 postgresql 源代码：</p>
+<p><a target="_blank" rel="noopener" href="https://www.postgresql.org/ftp/source/v12.0/">https://www.postgresql.org/ftp/source/v12.0/</a></p>
+</li>
+<li><p>在本地编译并安装 postgresql：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 切换到源代码目录</span></span><br><span class="line"><span class="built_in">cd</span> postgresql-12.0</span><br><span class="line"></span><br><span class="line"><span class="comment"># 初始化 make 配置</span></span><br><span class="line">/configure --enable-depend --enable-cassert --enable-debug CFLAGS=<span class="string">&quot;-O0&quot;</span> --prefix=<span class="variable">$HOME</span>/pgsql</span><br><span class="line"></span><br><span class="line"><span class="comment"># 编译</span></span><br><span class="line">make</span><br><span class="line"></span><br><span class="line"><span class="comment"># 安装(一般会安装到$HOME/pgsql)</span></span><br><span class="line">make install</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>初始化本地 postgresql 服务器：</p>
+<blockquote>
+<p>若你不幸把 pgsql 装到别的位置，把 <code>$HOME/pgsql</code> 替换成你安装的路径。</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$HOME</span>/pgsql/bin/initdb -D <span class="variable">$HOME</span>/pgsql/data --locale=C</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>启动 postgresql 服务器：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/home/[guanz]/pgsql/bin/pg_ctl -D /home/[guanz]/pgsql/data -l logfile start</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>连接 postgresql 服务器：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$HOME</span>/pgsql/bin/psql postgres</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>关闭 postgresql 服务器：</p>
+<blockquote>
+<p>“Ctrl + D” 和 <code>\q</code> 均可以退出 postgresql 命令行。</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># This command depends on your installation location, please modify it</span></span><br><span class="line">/home/[guanz]/pgsql/bin/pg_ctl -D /home/[guanz]/pgsql/data stop</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>加载测试数据：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">postgres<span class="operator">=</span># <span class="keyword">CREATE</span> DATABASE similarity;</span><br><span class="line">postgres<span class="operator">-</span># \c similarity</span><br><span class="line">postgres<span class="operator">-</span># \i <span class="operator">/</span>home<span class="operator">/</span>[guanz<span class="operator">/</span>data<span class="operator">/</span>]similarity_data.sql</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AE%9E%E9%AA%8C/select.png" alt="select_example"></p>
+</li>
+</ol>
+<hr>
+<h4 id="源代码解读"><a href="#源代码解读" class="headerlink" title="源代码解读"></a>源代码解读</h4><p>虽然源代码很多，但我们只关注以下几个文件：</p>
+<ul>
+<li>src&#x2F;backend&#x2F;executor&#x2F;nodeNestloop.c</li>
+<li>src&#x2F;include&#x2F;executor&#x2F;nodeNestloop.h</li>
+<li>src&#x2F;include&#x2F;nodes&#x2F;execnodes.h</li>
+</ul>
+<p>Nested-Loop 主要算法都在 nodeNestloop.c 中实现：</p>
+<blockquote>
+<p>其中 ExecNestLoop() 是执行嵌套循环连接，其余两个  ExecInitNestLoop() 和 ExecEndNestLoop() 则分别完成初始化和终止。</p>
+</blockquote>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br><span class="line">199</span><br><span class="line">200</span><br><span class="line">201</span><br><span class="line">202</span><br><span class="line">203</span><br><span class="line">204</span><br><span class="line">205</span><br><span class="line">206</span><br><span class="line">207</span><br><span class="line">208</span><br><span class="line">209</span><br><span class="line">210</span><br><span class="line">211</span><br><span class="line">212</span><br><span class="line">213</span><br><span class="line">214</span><br><span class="line">215</span><br><span class="line">216</span><br><span class="line">217</span><br><span class="line">218</span><br><span class="line">219</span><br><span class="line">220</span><br><span class="line">221</span><br><span class="line">222</span><br><span class="line">223</span><br><span class="line">224</span><br><span class="line">225</span><br><span class="line">226</span><br><span class="line">227</span><br><span class="line">228</span><br><span class="line">229</span><br><span class="line">230</span><br><span class="line">231</span><br><span class="line">232</span><br><span class="line">233</span><br><span class="line">234</span><br><span class="line">235</span><br><span class="line">236</span><br><span class="line">237</span><br><span class="line">238</span><br><span class="line">239</span><br><span class="line">240</span><br><span class="line">241</span><br><span class="line">242</span><br><span class="line">243</span><br><span class="line">244</span><br><span class="line">245</span><br><span class="line">246</span><br><span class="line">247</span><br><span class="line">248</span><br><span class="line">249</span><br><span class="line">250</span><br><span class="line">251</span><br><span class="line">252</span><br><span class="line">253</span><br><span class="line">254</span><br><span class="line">255</span><br><span class="line">256</span><br><span class="line">257</span><br><span class="line">258</span><br><span class="line">259</span><br><span class="line">260</span><br><span class="line">261</span><br><span class="line">262</span><br><span class="line">263</span><br><span class="line">264</span><br><span class="line">265</span><br><span class="line">266</span><br><span class="line">267</span><br><span class="line">268</span><br><span class="line">269</span><br><span class="line">270</span><br><span class="line">271</span><br><span class="line">272</span><br><span class="line">273</span><br><span class="line">274</span><br><span class="line">275</span><br><span class="line">276</span><br><span class="line">277</span><br><span class="line">278</span><br><span class="line">279</span><br><span class="line">280</span><br><span class="line">281</span><br><span class="line">282</span><br><span class="line">283</span><br><span class="line">284</span><br><span class="line">285</span><br><span class="line">286</span><br><span class="line">287</span><br><span class="line">288</span><br><span class="line">289</span><br><span class="line">290</span><br><span class="line">291</span><br><span class="line">292</span><br><span class="line">293</span><br><span class="line">294</span><br><span class="line">295</span><br><span class="line">296</span><br><span class="line">297</span><br><span class="line">298</span><br><span class="line">299</span><br><span class="line">300</span><br><span class="line">301</span><br><span class="line">302</span><br><span class="line">303</span><br><span class="line">304</span><br><span class="line">305</span><br><span class="line">306</span><br><span class="line">307</span><br><span class="line">308</span><br><span class="line">309</span><br><span class="line">310</span><br><span class="line">311</span><br><span class="line">312</span><br><span class="line">313</span><br><span class="line">314</span><br><span class="line">315</span><br><span class="line">316</span><br><span class="line">317</span><br><span class="line">318</span><br><span class="line">319</span><br><span class="line">320</span><br><span class="line">321</span><br><span class="line">322</span><br><span class="line">323</span><br><span class="line">324</span><br><span class="line">325</span><br><span class="line">326</span><br><span class="line">327</span><br><span class="line">328</span><br><span class="line">329</span><br><span class="line">330</span><br><span class="line">331</span><br><span class="line">332</span><br><span class="line">333</span><br><span class="line">334</span><br><span class="line">335</span><br><span class="line">336</span><br><span class="line">337</span><br><span class="line">338</span><br><span class="line">339</span><br><span class="line">340</span><br><span class="line">341</span><br><span class="line">342</span><br><span class="line">343</span><br><span class="line">344</span><br><span class="line">345</span><br><span class="line">346</span><br><span class="line">347</span><br><span class="line">348</span><br><span class="line">349</span><br><span class="line">350</span><br><span class="line">351</span><br><span class="line">352</span><br><span class="line">353</span><br><span class="line">354</span><br><span class="line">355</span><br><span class="line">356</span><br><span class="line">357</span><br><span class="line">358</span><br><span class="line">359</span><br><span class="line">360</span><br><span class="line">361</span><br><span class="line">362</span><br><span class="line">363</span><br><span class="line">364</span><br><span class="line">365</span><br><span class="line">366</span><br><span class="line">367</span><br><span class="line">368</span><br><span class="line">369</span><br><span class="line">370</span><br><span class="line">371</span><br><span class="line">372</span><br><span class="line">373</span><br><span class="line">374</span><br><span class="line">375</span><br><span class="line">376</span><br><span class="line">377</span><br><span class="line">378</span><br><span class="line">379</span><br><span class="line">380</span><br><span class="line">381</span><br><span class="line">382</span><br><span class="line">383</span><br><span class="line">384</span><br><span class="line">385</span><br><span class="line">386</span><br><span class="line">387</span><br><span class="line">388</span><br><span class="line">389</span><br><span class="line">390</span><br><span class="line">391</span><br><span class="line">392</span><br><span class="line">393</span><br><span class="line">394</span><br><span class="line">395</span><br><span class="line">396</span><br><span class="line">397</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment">* xht03：</span></span><br><span class="line"><span class="comment">* ExecNestLoop 是迭代器函数，不是一次执行完所有循环，</span></span><br><span class="line"><span class="comment">* 而是每次循环时执行一次的函数</span></span><br><span class="line"><span class="comment">*/</span></span><br><span class="line"><span class="type">static</span> TupleTableSlot *</span><br><span class="line"><span class="title function_">ExecNestLoop</span><span class="params">(PlanState *pstate)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">/*</span></span><br><span class="line"><span class="comment">    * xht03：</span></span><br><span class="line"><span class="comment">    * node 指的是查询计划树中的一个节点。</span></span><br><span class="line"><span class="comment">    * 在这段代码中，NestLoopState *node 是</span></span><br><span class="line"><span class="comment">    * 一个指向 NestLoopState 结构体的指针，</span></span><br><span class="line"><span class="comment">    * 这个结构体通常包含了执行Nested Loop Join 所需要的状态信息。</span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line">	NestLoopState *node = castNode(NestLoopState, pstate);</span><br><span class="line">	NestLoop   *nl;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">/*</span></span><br><span class="line"><span class="comment">    * xht03：</span></span><br><span class="line"><span class="comment">    * Plan 指的是查询计划，</span></span><br><span class="line"><span class="comment">    * 它是数据库查询优化器生成的一种数据结构，</span></span><br><span class="line"><span class="comment">    * 用于描述如何执行一个SQL查询。</span></span><br><span class="line"><span class="comment">    * 查询计划是由一系列的操作步骤（或称为操作符）组成的树状结构，</span></span><br><span class="line"><span class="comment">    * 每一个操作步骤都对应查询计划树中的一个节点。</span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line">	PlanState  *innerPlan;</span><br><span class="line">	PlanState  *outerPlan;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">/*</span></span><br><span class="line"><span class="comment">    * xht03：</span></span><br><span class="line"><span class="comment">    * slot 意为“槽”</span></span><br><span class="line"><span class="comment">    * outerTupleSlot和innerTupleSlot是用来：</span></span><br><span class="line"><span class="comment">    * 存储从外部/内部关系（或称为左/右表）获取的当前元组</span></span><br><span class="line"><span class="comment">    */</span>  </span><br><span class="line">	TupleTableSlot *outerTupleSlot;</span><br><span class="line">	TupleTableSlot *innerTupleSlot;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 连接条件</span></span><br><span class="line">    <span class="comment">// 其他条件（比如：where后面跟的表达式）</span></span><br><span class="line">	ExprState  *joinqual;</span><br><span class="line">	ExprState  *otherqual;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 存储执行过程中的上下文</span></span><br><span class="line">	ExprContext *econtext;</span><br><span class="line">	ListCell   *lc;</span><br><span class="line">	</span><br><span class="line">    <span class="comment">// 检查中断（不用管）</span></span><br><span class="line">	CHECK_FOR_INTERRUPTS();</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * get information from the node</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	ENL1_printf(<span class="string">&quot;getting info from node&quot;</span>);</span><br><span class="line"></span><br><span class="line">	nl = (NestLoop *) node-&gt;js.ps.plan;</span><br><span class="line">	joinqual = node-&gt;js.joinqual;</span><br><span class="line">	otherqual = node-&gt;js.ps.qual;</span><br><span class="line">	outerPlan = outerPlanState(node);	<span class="comment">// 记录外表所在的tuple</span></span><br><span class="line">	innerPlan = innerPlanState(node);	<span class="comment">// 记录内表所在的tuple</span></span><br><span class="line">	econtext = node-&gt;js.ps.ps_ExprContext;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * Reset per-tuple memory context to free any expression evaluation</span></span><br><span class="line"><span class="comment">	 * storage allocated in the previous tuple cycle.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	ResetExprContext(econtext);</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * Ok, everything is setup for the join so now loop until we return a</span></span><br><span class="line"><span class="comment">	 * qualifying join tuple.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	ENL1_printf(<span class="string">&quot;entering main loop&quot;</span>);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> (;;)</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="comment">/*</span></span><br><span class="line"><span class="comment">		 * xht03:</span></span><br><span class="line"><span class="comment">		 * 当需要新的外部元组时，获取下一个的外部元组，</span></span><br><span class="line"><span class="comment">		 * 并让内表从头开始扫描（重置）</span></span><br><span class="line"><span class="comment">		 */</span></span><br><span class="line">		<span class="keyword">if</span> (node-&gt;nl_NeedNewOuter)</span><br><span class="line">		&#123;</span><br><span class="line">			ENL1_printf(<span class="string">&quot;getting new outer tuple&quot;</span>);</span><br><span class="line">			outerTupleSlot = ExecProcNode(outerPlan);</span><br><span class="line"></span><br><span class="line">			<span class="comment">/*</span></span><br><span class="line"><span class="comment">			 * xht03：</span></span><br><span class="line"><span class="comment">			 * 如果下一个外部元组为空，则 join 完成了</span></span><br><span class="line"><span class="comment">			 */</span></span><br><span class="line">			<span class="keyword">if</span> (TupIsNull(outerTupleSlot))</span><br><span class="line">			&#123;</span><br><span class="line">				ENL1_printf(<span class="string">&quot;no outer tuple, ending join&quot;</span>);</span><br><span class="line">				<span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			ENL1_printf(<span class="string">&quot;saving new outer tuple information&quot;</span>);</span><br><span class="line">			econtext-&gt;ecxt_outertuple = outerTupleSlot;</span><br><span class="line">			node-&gt;nl_NeedNewOuter = <span class="literal">false</span>;</span><br><span class="line">			node-&gt;nl_MatchedOuter = <span class="literal">false</span>;</span><br><span class="line"></span><br><span class="line">			<span class="comment">/*</span></span><br><span class="line"><span class="comment">			 * fetch the values of any outer Vars that must be passed to the</span></span><br><span class="line"><span class="comment">			 * inner scan, and store them in the appropriate PARAM_EXEC slots.</span></span><br><span class="line"><span class="comment">			 *</span></span><br><span class="line"><span class="comment">			 * xht03：</span></span><br><span class="line"><span class="comment">			 * 传递一些参数，不用管，也不要改</span></span><br><span class="line"><span class="comment">			 */</span></span><br><span class="line">			foreach(lc, nl-&gt;nestParams)</span><br><span class="line">			&#123;</span><br><span class="line">				NestLoopParam *nlp = (NestLoopParam *) lfirst(lc);</span><br><span class="line">				<span class="type">int</span>			paramno = nlp-&gt;paramno;</span><br><span class="line">				ParamExecData *prm;</span><br><span class="line"></span><br><span class="line">				prm = &amp;(econtext-&gt;ecxt_param_exec_vals[paramno]);</span><br><span class="line">				<span class="comment">/* Param value should be an OUTER_VAR var */</span></span><br><span class="line">				Assert(IsA(nlp-&gt;paramval, Var));</span><br><span class="line">				Assert(nlp-&gt;paramval-&gt;varno == OUTER_VAR);</span><br><span class="line">				Assert(nlp-&gt;paramval-&gt;varattno &gt; <span class="number">0</span>);</span><br><span class="line">				prm-&gt;value = slot_getattr(outerTupleSlot,</span><br><span class="line">										  nlp-&gt;paramval-&gt;varattno,</span><br><span class="line">										  &amp;(prm-&gt;isnull));</span><br><span class="line">				<span class="comment">/* Flag parameter value as changed */</span></span><br><span class="line">				innerPlan-&gt;chgParam = bms_add_member(innerPlan-&gt;chgParam,</span><br><span class="line">													 paramno);</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			<span class="comment">/*</span></span><br><span class="line"><span class="comment">			 * now rescan the inner plan</span></span><br><span class="line"><span class="comment">			 */</span></span><br><span class="line">			ENL1_printf(<span class="string">&quot;rescanning inner plan&quot;</span>);</span><br><span class="line">			ExecReScan(innerPlan);</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">/*</span></span><br><span class="line"><span class="comment">		 * we have an outerTuple, try to get the next inner tuple.</span></span><br><span class="line"><span class="comment">		 */</span></span><br><span class="line">		ENL1_printf(<span class="string">&quot;getting new inner tuple&quot;</span>);</span><br><span class="line"></span><br><span class="line">		innerTupleSlot = ExecProcNode(innerPlan);</span><br><span class="line">		econtext-&gt;ecxt_innertuple = innerTupleSlot;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (TupIsNull(innerTupleSlot))</span><br><span class="line">		&#123;</span><br><span class="line">			ENL1_printf(<span class="string">&quot;no inner tuple, need new outer tuple&quot;</span>);</span><br><span class="line"></span><br><span class="line">			node-&gt;nl_NeedNewOuter = <span class="literal">true</span>;</span><br><span class="line"></span><br><span class="line">			<span class="keyword">if</span> (!node-&gt;nl_MatchedOuter &amp;&amp;</span><br><span class="line">				(node-&gt;js.jointype == JOIN_LEFT ||</span><br><span class="line">				 node-&gt;js.jointype == JOIN_ANTI))</span><br><span class="line">			&#123;</span><br><span class="line">				<span class="comment">/*</span></span><br><span class="line"><span class="comment">				 * We are doing an outer join and there were no join matches</span></span><br><span class="line"><span class="comment">				 * for this outer tuple.  Generate a fake join tuple with</span></span><br><span class="line"><span class="comment">				 * nulls for the inner tuple, and return it if it passes the</span></span><br><span class="line"><span class="comment">				 * non-join quals.</span></span><br><span class="line"><span class="comment">				 * </span></span><br><span class="line"><span class="comment">				 * xht03：</span></span><br><span class="line"><span class="comment">				 * 你可能也发现了：外部元组和内部元组的值，除了会存进 outerTupleSlot</span></span><br><span class="line"><span class="comment">				 * 和 innerTupleSlot，还要存进上下文 econtext 里。</span></span><br><span class="line"><span class="comment">				 * 这是因为：ExecQual() 判断是否满足等式条件的函数，是使用上下文中</span></span><br><span class="line"><span class="comment">				 * 存储的内外部元组信息进行判断的。</span></span><br><span class="line"><span class="comment">				 * 这样的函数还有很多，所以一定要记得更新上下文</span></span><br><span class="line"><span class="comment">				 */</span></span><br><span class="line">				econtext-&gt;ecxt_innertuple = node-&gt;nl_NullInnerTupleSlot;</span><br><span class="line"></span><br><span class="line">				ENL1_printf(<span class="string">&quot;testing qualification for outer-join tuple&quot;</span>);</span><br><span class="line">				</span><br><span class="line">				<span class="keyword">if</span> (otherqual == <span class="literal">NULL</span> || ExecQual(otherqual, econtext))</span><br><span class="line">				&#123;</span><br><span class="line">					<span class="comment">/*</span></span><br><span class="line"><span class="comment">					 * qualification was satisfied so we project and return</span></span><br><span class="line"><span class="comment">					 * the slot containing the result tuple using</span></span><br><span class="line"><span class="comment">					 * ExecProject().</span></span><br><span class="line"><span class="comment">					 */</span></span><br><span class="line">					ENL1_printf(<span class="string">&quot;qualification succeeded, projecting tuple&quot;</span>);</span><br><span class="line">					<span class="keyword">return</span> ExecProject(node-&gt;js.ps.ps_ProjInfo);</span><br><span class="line">				&#125;</span><br><span class="line">				<span class="keyword">else</span></span><br><span class="line">					InstrCountFiltered2(node, <span class="number">1</span>);</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			<span class="comment">/*</span></span><br><span class="line"><span class="comment">			 * Otherwise just return to top of loop for a new outer tuple.</span></span><br><span class="line"><span class="comment">			 */</span></span><br><span class="line">			<span class="keyword">continue</span>;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">/*</span></span><br><span class="line"><span class="comment">		 * at this point we have a new pair of inner and outer tuples so we</span></span><br><span class="line"><span class="comment">		 * test the inner and outer tuples to see if they satisfy the node&#x27;s</span></span><br><span class="line"><span class="comment">		 * qualification.</span></span><br><span class="line"><span class="comment">		 *</span></span><br><span class="line"><span class="comment">		 * Only the joinquals determine MatchedOuter status, but all quals</span></span><br><span class="line"><span class="comment">		 * must pass to actually return the tuple.</span></span><br><span class="line"><span class="comment">		 */</span></span><br><span class="line">		ENL1_printf(<span class="string">&quot;testing qualification&quot;</span>);</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (ExecQual(joinqual, econtext))</span><br><span class="line">		&#123;</span><br><span class="line">			node-&gt;nl_MatchedOuter = <span class="literal">true</span>;</span><br><span class="line"></span><br><span class="line">			<span class="comment">/* In an antijoin, we never return a matched tuple */</span></span><br><span class="line">			<span class="keyword">if</span> (node-&gt;js.jointype == JOIN_ANTI)</span><br><span class="line">			&#123;</span><br><span class="line">				node-&gt;nl_NeedNewOuter = <span class="literal">true</span>;</span><br><span class="line">				<span class="keyword">continue</span>;		<span class="comment">/* return to top of loop */</span></span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			<span class="comment">/*</span></span><br><span class="line"><span class="comment">			 * If we only need to join to the first matching inner tuple, then</span></span><br><span class="line"><span class="comment">			 * consider returning this one, but after that continue with next</span></span><br><span class="line"><span class="comment">			 * outer tuple.</span></span><br><span class="line"><span class="comment">			 */</span></span><br><span class="line">			<span class="keyword">if</span> (node-&gt;js.single_match)</span><br><span class="line">				node-&gt;nl_NeedNewOuter = <span class="literal">true</span>;</span><br><span class="line"></span><br><span class="line">			<span class="keyword">if</span> (otherqual == <span class="literal">NULL</span> || ExecQual(otherqual, econtext))</span><br><span class="line">			&#123;</span><br><span class="line">				<span class="comment">/*</span></span><br><span class="line"><span class="comment">				 * qualification was satisfied so we project and return the</span></span><br><span class="line"><span class="comment">				 * slot containing the result tuple using ExecProject().</span></span><br><span class="line"><span class="comment">				 */</span></span><br><span class="line">				ENL1_printf(<span class="string">&quot;qualification succeeded, projecting tuple&quot;</span>);</span><br><span class="line"></span><br><span class="line">				<span class="keyword">return</span> ExecProject(node-&gt;js.ps.ps_ProjInfo);</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">else</span></span><br><span class="line">				InstrCountFiltered2(node, <span class="number">1</span>);</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">else</span></span><br><span class="line">			InstrCountFiltered1(node, <span class="number">1</span>);</span><br><span class="line"></span><br><span class="line">		<span class="comment">/*</span></span><br><span class="line"><span class="comment">		 * Tuple fails qual, so free per-tuple memory and try again.</span></span><br><span class="line"><span class="comment">		 */</span></span><br><span class="line">		ResetExprContext(econtext);</span><br><span class="line"></span><br><span class="line">		ENL1_printf(<span class="string">&quot;qualification failed, looping&quot;</span>);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* ----------------------------------------------------------------</span></span><br><span class="line"><span class="comment"> *		ExecInitNestLoop</span></span><br><span class="line"><span class="comment"> * ----------------------------------------------------------------</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">NestLoopState *</span><br><span class="line"><span class="title function_">ExecInitNestLoop</span><span class="params">(NestLoop *node, EState *estate, <span class="type">int</span> eflags)</span></span><br><span class="line">&#123;</span><br><span class="line">	NestLoopState *nlstate;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* check for unsupported flags */</span></span><br><span class="line">	Assert(!(eflags &amp; (EXEC_FLAG_BACKWARD | EXEC_FLAG_MARK)));</span><br><span class="line"></span><br><span class="line">	NL1_printf(<span class="string">&quot;ExecInitNestLoop: %s\n&quot;</span>,</span><br><span class="line">			   <span class="string">&quot;initializing node&quot;</span>);</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * create state structure</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	nlstate = makeNode(NestLoopState);</span><br><span class="line">	nlstate-&gt;js.ps.plan = (Plan *) node;</span><br><span class="line">	nlstate-&gt;js.ps.state = estate;</span><br><span class="line">	nlstate-&gt;js.ps.ExecProcNode = ExecNestLoop;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * Miscellaneous initialization</span></span><br><span class="line"><span class="comment">	 *</span></span><br><span class="line"><span class="comment">	 * create expression context for node</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	ExecAssignExprContext(estate, &amp;nlstate-&gt;js.ps);</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * initialize child nodes</span></span><br><span class="line"><span class="comment">	 *</span></span><br><span class="line"><span class="comment">	 * If we have no parameters to pass into the inner rel from the outer,</span></span><br><span class="line"><span class="comment">	 * tell the inner child that cheap rescans would be good.  If we do have</span></span><br><span class="line"><span class="comment">	 * such parameters, then there is no point in REWIND support at all in the</span></span><br><span class="line"><span class="comment">	 * inner child, because it will always be rescanned with fresh parameter</span></span><br><span class="line"><span class="comment">	 * values.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	outerPlanState(nlstate) = ExecInitNode(outerPlan(node), estate, eflags);</span><br><span class="line">	<span class="keyword">if</span> (node-&gt;nestParams == NIL)</span><br><span class="line">		eflags |= EXEC_FLAG_REWIND;</span><br><span class="line">	<span class="keyword">else</span></span><br><span class="line">		eflags &amp;= ~EXEC_FLAG_REWIND;</span><br><span class="line">	innerPlanState(nlstate) = ExecInitNode(innerPlan(node), estate, eflags);</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * Initialize result slot, type and projection.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	ExecInitResultTupleSlotTL(&amp;nlstate-&gt;js.ps, &amp;TTSOpsVirtual);</span><br><span class="line">	ExecAssignProjectionInfo(&amp;nlstate-&gt;js.ps, <span class="literal">NULL</span>);</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * initialize child expressions</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	nlstate-&gt;js.ps.qual =</span><br><span class="line">		ExecInitQual(node-&gt;join.plan.qual, (PlanState *) nlstate);</span><br><span class="line">	nlstate-&gt;js.jointype = node-&gt;join.jointype;</span><br><span class="line">	nlstate-&gt;js.joinqual =</span><br><span class="line">		ExecInitQual(node-&gt;join.joinqual, (PlanState *) nlstate);</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * detect whether we need only consider the first matching inner tuple</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	nlstate-&gt;js.single_match = (node-&gt;join.inner_unique ||</span><br><span class="line">								node-&gt;join.jointype == JOIN_SEMI);</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* set up null tuples for outer joins, if needed */</span></span><br><span class="line">	<span class="keyword">switch</span> (node-&gt;join.jointype)</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="keyword">case</span> JOIN_INNER:</span><br><span class="line">		<span class="keyword">case</span> JOIN_SEMI:</span><br><span class="line">			<span class="keyword">break</span>;</span><br><span class="line">		<span class="keyword">case</span> JOIN_LEFT:</span><br><span class="line">		<span class="keyword">case</span> JOIN_ANTI:</span><br><span class="line">			nlstate-&gt;nl_NullInnerTupleSlot =</span><br><span class="line">				ExecInitNullTupleSlot(estate,</span><br><span class="line">									  ExecGetResultType(innerPlanState(nlstate)),</span><br><span class="line">									  &amp;TTSOpsVirtual);</span><br><span class="line">			<span class="keyword">break</span>;</span><br><span class="line">		<span class="keyword">default</span>:</span><br><span class="line">			elog(ERROR, <span class="string">&quot;unrecognized join type: %d&quot;</span>,</span><br><span class="line">				 (<span class="type">int</span>) node-&gt;join.jointype);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * finally, wipe the current outer tuple clean.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	nlstate-&gt;nl_NeedNewOuter = <span class="literal">true</span>;</span><br><span class="line">	nlstate-&gt;nl_MatchedOuter = <span class="literal">false</span>;</span><br><span class="line"></span><br><span class="line">	NL1_printf(<span class="string">&quot;ExecInitNestLoop: %s\n&quot;</span>,</span><br><span class="line">			   <span class="string">&quot;node initialized&quot;</span>);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> nlstate;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* ----------------------------------------------------------------</span></span><br><span class="line"><span class="comment"> *		ExecEndNestLoop</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> *		closes down scans and frees allocated storage</span></span><br><span class="line"><span class="comment"> * ----------------------------------------------------------------</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">void</span></span><br><span class="line"><span class="title function_">ExecEndNestLoop</span><span class="params">(NestLoopState *node)</span></span><br><span class="line">&#123;</span><br><span class="line">	NL1_printf(<span class="string">&quot;ExecEndNestLoop: %s\n&quot;</span>,</span><br><span class="line">			   <span class="string">&quot;ending node processing&quot;</span>);</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * Free the exprcontext</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	ExecFreeExprContext(&amp;node-&gt;js.ps);</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * clean out the tuple table</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	ExecClearTuple(node-&gt;js.ps.ps_ResultTupleSlot);</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * close down subplans</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	ExecEndNode(outerPlanState(node));</span><br><span class="line">	ExecEndNode(innerPlanState(node));</span><br><span class="line"></span><br><span class="line">	NL1_printf(<span class="string">&quot;ExecEndNestLoop: %s\n&quot;</span>,</span><br><span class="line">			   <span class="string">&quot;node processing ended&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* ----------------------------------------------------------------</span></span><br><span class="line"><span class="comment"> *		ExecReScanNestLoop</span></span><br><span class="line"><span class="comment"> * ----------------------------------------------------------------</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">void</span></span><br><span class="line"><span class="title function_">ExecReScanNestLoop</span><span class="params">(NestLoopState *node)</span></span><br><span class="line">&#123;</span><br><span class="line">	PlanState  *outerPlan = outerPlanState(node);</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * If outerPlan-&gt;chgParam is not null then plan will be automatically</span></span><br><span class="line"><span class="comment">	 * re-scanned by first ExecProcNode.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="keyword">if</span> (outerPlan-&gt;chgParam == <span class="literal">NULL</span>)</span><br><span class="line">		ExecReScan(outerPlan);</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * innerPlan is re-scanned for each new outer tuple and MUST NOT be</span></span><br><span class="line"><span class="comment">	 * re-scanned from here or you&#x27;ll get troubles from inner index scans when</span></span><br><span class="line"><span class="comment">	 * outer Vars are used as run-time keys...</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line"></span><br><span class="line">	node-&gt;nl_NeedNewOuter = <span class="literal">true</span>;</span><br><span class="line">	node-&gt;nl_MatchedOuter = <span class="literal">false</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<hr>
+<h4 id="源代码修改"><a href="#源代码修改" class="headerlink" title="源代码修改"></a>源代码修改</h4><p>我们主要做了一下修改：</p>
+<ul>
+<li>新增了结构体类型 <strong>NestedBlock</strong> ，用于存放中间缓存的外部元组。</li>
+</ul>
+<p>与之相应地：</p>
+<ul>
+<li>增加了 <strong>GetNestedBlock()</strong> 函数，用于获取新的中间元组。</li>
+<li>在上下文类型 <strong>ExprContext</strong> 中增加 <strong>NestedBlock</strong> 变量，将中间缓存元组记录在上下文中。</li>
+<li>修改 <strong>ExecNestLoop()</strong> 函数：外部元组一次取出至多 <strong>NESTED_BLOCK_SIZE</strong> 个元组放入缓存 <strong>NestedBlock</strong> 中，并照旧扫描内部元组。但每次需要将缓存中的所有 outer tuple 一一与 inner tuple 进行比较，且外部元组的指针需要往后移动 <strong>NESTED_BLOCK_SIZE</strong> 个元组。</li>
+</ul>
+<p>修改细节如下（修改之处都加有 <em>xht03</em> 注释）：</p>
+<blockquote>
+<p>execnodes.h</p>
+</blockquote>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// xht03</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> NESTED_BLOCK_SIZE 64</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">NestedBlock</span>&#123;</span></span><br><span class="line">    TupleTableSlot *tuple[NESTED_BLOCK_SIZE];	<span class="comment">// 存放外部元组</span></span><br><span class="line">	<span class="type">bool</span> isMatched[NESTED_BLOCK_SIZE];			<span class="comment">// 是否在内部关系中匹配到过</span></span><br><span class="line">    <span class="type">int</span> size;									<span class="comment">// 缓存中的元组个数</span></span><br><span class="line">&#125; NestedBlock;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">ExprContext</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">	NodeTag		type;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Tuples that Var nodes in expression may refer to */</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> FIELDNO_EXPRCONTEXT_SCANTUPLE 1</span></span><br><span class="line">	TupleTableSlot *ecxt_scantuple;</span><br><span class="line"><span class="meta">#<span class="keyword">define</span> FIELDNO_EXPRCONTEXT_INNERTUPLE 2</span></span><br><span class="line">	TupleTableSlot *ecxt_innertuple;</span><br><span class="line"><span class="meta">#<span class="keyword">define</span> FIELDNO_EXPRCONTEXT_OUTERTUPLE 3</span></span><br><span class="line">	TupleTableSlot *ecxt_outertuple;</span><br><span class="line"></span><br><span class="line"><span class="comment">// xht03</span></span><br><span class="line">	NestedBlock *ecxt_block;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Memory contexts for expression evaluation --- see notes above */</span></span><br><span class="line">	MemoryContext ecxt_per_query_memory;</span><br><span class="line">	MemoryContext ecxt_per_tuple_memory;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Values to substitute for Param nodes in expression */</span></span><br><span class="line">	ParamExecData *ecxt_param_exec_vals;	<span class="comment">/* for PARAM_EXEC params */</span></span><br><span class="line">	ParamListInfo ecxt_param_list_info; <span class="comment">/* for other param types */</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * Values to substitute for Aggref nodes in the expressions of an Agg</span></span><br><span class="line"><span class="comment">	 * node, or for WindowFunc nodes within a WindowAgg node.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> FIELDNO_EXPRCONTEXT_AGGVALUES 8</span></span><br><span class="line">	Datum	   *ecxt_aggvalues; <span class="comment">/* precomputed values for aggs/windowfuncs */</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> FIELDNO_EXPRCONTEXT_AGGNULLS 9</span></span><br><span class="line">	<span class="type">bool</span>	   *ecxt_aggnulls;	<span class="comment">/* null flags for aggs/windowfuncs */</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Value to substitute for CaseTestExpr nodes in expression */</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> FIELDNO_EXPRCONTEXT_CASEDATUM 10</span></span><br><span class="line">	Datum		caseValue_datum;</span><br><span class="line"><span class="meta">#<span class="keyword">define</span> FIELDNO_EXPRCONTEXT_CASENULL 11</span></span><br><span class="line">	<span class="type">bool</span>		caseValue_isNull;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Value to substitute for CoerceToDomainValue nodes in expression */</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> FIELDNO_EXPRCONTEXT_DOMAINDATUM 12</span></span><br><span class="line">	Datum		domainValue_datum;</span><br><span class="line"><span class="meta">#<span class="keyword">define</span> FIELDNO_EXPRCONTEXT_DOMAINNULL 13</span></span><br><span class="line">	<span class="type">bool</span>		domainValue_isNull;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Link to containing EState (NULL if a standalone ExprContext) */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">EState</span> *<span class="title">ecxt_estate</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Functions to call back when ExprContext is shut down or rescanned */</span></span><br><span class="line">	ExprContext_CB *ecxt_callbacks;</span><br><span class="line">&#125; ExprContext;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>nodeNestloop.h</p>
+</blockquote>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">ifndef</span> NODENESTLOOP_H</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> NODENESTLOOP_H</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;nodes/execnodes.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">// xht03</span></span><br><span class="line"><span class="keyword">extern</span> <span class="type">void</span> *<span class="title function_">GetNestedBlock</span><span class="params">(NestedBlock *block, PlanState *outerPlan)</span>;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">extern</span> NestLoopState *<span class="title function_">ExecInitNestLoop</span><span class="params">(NestLoop *node, EState *estate, <span class="type">int</span> eflags)</span>;</span><br><span class="line"><span class="keyword">extern</span> <span class="type">void</span> <span class="title function_">ExecEndNestLoop</span><span class="params">(NestLoopState *node)</span>;</span><br><span class="line"><span class="keyword">extern</span> <span class="type">void</span> <span class="title function_">ExecReScanNestLoop</span><span class="params">(NestLoopState *node)</span>;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span>							<span class="comment">/* NODENESTLOOP_H */</span></span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>nodeNestloop.c</p>
+</blockquote>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br><span class="line">199</span><br><span class="line">200</span><br><span class="line">201</span><br><span class="line">202</span><br><span class="line">203</span><br><span class="line">204</span><br><span class="line">205</span><br><span class="line">206</span><br><span class="line">207</span><br><span class="line">208</span><br><span class="line">209</span><br><span class="line">210</span><br><span class="line">211</span><br><span class="line">212</span><br><span class="line">213</span><br><span class="line">214</span><br><span class="line">215</span><br><span class="line">216</span><br><span class="line">217</span><br><span class="line">218</span><br><span class="line">219</span><br><span class="line">220</span><br><span class="line">221</span><br><span class="line">222</span><br><span class="line">223</span><br><span class="line">224</span><br><span class="line">225</span><br><span class="line">226</span><br><span class="line">227</span><br><span class="line">228</span><br><span class="line">229</span><br><span class="line">230</span><br><span class="line">231</span><br><span class="line">232</span><br><span class="line">233</span><br><span class="line">234</span><br><span class="line">235</span><br><span class="line">236</span><br><span class="line">237</span><br><span class="line">238</span><br><span class="line">239</span><br><span class="line">240</span><br><span class="line">241</span><br><span class="line">242</span><br><span class="line">243</span><br><span class="line">244</span><br><span class="line">245</span><br><span class="line">246</span><br><span class="line">247</span><br><span class="line">248</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// xht03</span></span><br><span class="line"><span class="type">void</span> *<span class="title function_">GetNestedBlock</span><span class="params">(NestedBlock *block, PlanState *outerPlan)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">for</span>(<span class="type">int</span> i = <span class="number">0</span>; i &lt; NESTED_BLOCK_SIZE; i++)</span><br><span class="line">    &#123;</span><br><span class="line">        block-&gt;tuple[i] = ExecProcNode(outerPlan);</span><br><span class="line">		block-&gt;isMatched[i] = <span class="literal">false</span>;</span><br><span class="line">        <span class="keyword">if</span>(TupIsNull(block-&gt;tuple[i]))</span><br><span class="line">        &#123;</span><br><span class="line">            block-&gt;size = i;</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="type">static</span> TupleTableSlot *</span><br><span class="line"><span class="title function_">ExecNestLoop</span><span class="params">(PlanState *pstate)</span>	</span><br><span class="line">&#123;</span><br><span class="line">	NestLoopState *node = castNode(NestLoopState, pstate);</span><br><span class="line">	NestLoop   *nl;</span><br><span class="line">	PlanState  *innerPlan;</span><br><span class="line">	PlanState  *outerPlan;</span><br><span class="line">	TupleTableSlot *outerTupleSlot;</span><br><span class="line">	TupleTableSlot *innerTupleSlot;</span><br><span class="line">	ExprState  *joinqual;</span><br><span class="line">	ExprState  *otherqual;</span><br><span class="line">	ExprContext *econtext;</span><br><span class="line">	ListCell   *lc;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// xht03</span></span><br><span class="line">	NestedBlock block;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">	CHECK_FOR_INTERRUPTS();	</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * get information from the node</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	ENL1_printf(<span class="string">&quot;getting info from node&quot;</span>);</span><br><span class="line"></span><br><span class="line">	nl = (NestLoop *) node-&gt;js.ps.plan;</span><br><span class="line">	joinqual = node-&gt;js.joinqual;</span><br><span class="line">	otherqual = node-&gt;js.ps.qual;</span><br><span class="line">	outerPlan = outerPlanState(node);</span><br><span class="line">	innerPlan = innerPlanState(node);</span><br><span class="line">	econtext = node-&gt;js.ps.ps_ExprContext;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * Reset per-tuple memory context to free any expression evaluation</span></span><br><span class="line"><span class="comment">	 * storage allocated in the previous tuple cycle.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	ResetExprContext(econtext);</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * Ok, everything is setup for the join so now loop until we return a</span></span><br><span class="line"><span class="comment">	 * qualifying join tuple.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	ENL1_printf(<span class="string">&quot;entering main loop&quot;</span>);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> (;;)</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="comment">/*</span></span><br><span class="line"><span class="comment">		 * If we don&#x27;t have an outer tuple, get the next one and reset the</span></span><br><span class="line"><span class="comment">		 * inner scan.</span></span><br><span class="line"><span class="comment">		 */</span></span><br><span class="line">		<span class="keyword">if</span> (node-&gt;nl_NeedNewOuter)</span><br><span class="line">		&#123;</span><br><span class="line">			ENL1_printf(<span class="string">&quot;getting new outer tuple&quot;</span>);</span><br><span class="line">			<span class="comment">// xht03</span></span><br><span class="line">			GetNestedBlock(&amp;block, outerPlan);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">			<span class="comment">/*</span></span><br><span class="line"><span class="comment">		 	 * if there are no more outer tuples, then the join is complete..</span></span><br><span class="line"><span class="comment">			 */</span></span><br><span class="line">			<span class="comment">// xht03</span></span><br><span class="line">			<span class="keyword">if</span> (block.size == <span class="number">0</span>)</span><br><span class="line">			&#123;</span><br><span class="line">				ENL1_printf(<span class="string">&quot;no outer tuple, ending join&quot;</span>);</span><br><span class="line">				<span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			ENL1_printf(<span class="string">&quot;saving new outer tuple information&quot;</span>);</span><br><span class="line">			<span class="comment">//econtext-&gt;ecxt_outertuple = outerTupleSlot;	// 记录外表所在的tuple，更新上下文</span></span><br><span class="line">			</span><br><span class="line">			<span class="comment">// xht03</span></span><br><span class="line">			outerTupleSlot = block.tuple[block.size - <span class="number">1</span>];</span><br><span class="line">			econtext-&gt;ecxt_outertuple = outerTupleSlot;</span><br><span class="line">			econtext-&gt;ecxt_block = &amp;block;</span><br><span class="line">			node-&gt;nl_NeedNewOuter = <span class="literal">false</span>;</span><br><span class="line">			node-&gt;nl_MatchedOuter = <span class="literal">false</span>;</span><br><span class="line">            </span><br><span class="line">			<span class="comment">/*</span></span><br><span class="line"><span class="comment">			 * fetch the values of any outer Vars that must be passed to the</span></span><br><span class="line"><span class="comment">			 * inner scan, and store them in the appropriate PARAM_EXEC slots.</span></span><br><span class="line"><span class="comment">			 */</span></span><br><span class="line">            <span class="comment">// 将外表的一些参数传递给内表</span></span><br><span class="line">			foreach(lc, nl-&gt;nestParams)</span><br><span class="line">			&#123;</span><br><span class="line">				NestLoopParam *nlp = (NestLoopParam *) lfirst(lc);</span><br><span class="line">				<span class="type">int</span>			paramno = nlp-&gt;paramno;</span><br><span class="line">				ParamExecData *prm;</span><br><span class="line">				prm = &amp;(econtext-&gt;ecxt_param_exec_vals[paramno]);</span><br><span class="line">				<span class="comment">/* Param value should be an OUTER_VAR var */</span></span><br><span class="line">				Assert(IsA(nlp-&gt;paramval, Var));</span><br><span class="line">				Assert(nlp-&gt;paramval-&gt;varno == OUTER_VAR);</span><br><span class="line">				Assert(nlp-&gt;paramval-&gt;varattno &gt; <span class="number">0</span>);</span><br><span class="line">				prm-&gt;value = slot_getattr(outerTupleSlot,</span><br><span class="line">										  nlp-&gt;paramval-&gt;varattno,</span><br><span class="line">										  &amp;(prm-&gt;isnull));</span><br><span class="line">				<span class="comment">/* Flag parameter value as changed */</span></span><br><span class="line">				innerPlan-&gt;chgParam = bms_add_member(innerPlan-&gt;chgParam,</span><br><span class="line">													 paramno);</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="comment">/*</span></span><br><span class="line"><span class="comment">			 * now rescan the inner plan</span></span><br><span class="line"><span class="comment">			 */</span></span><br><span class="line">            <span class="comment">// 重新确定内表从哪里开始扫描</span></span><br><span class="line">			ENL1_printf(<span class="string">&quot;rescanning inner plan&quot;</span>);</span><br><span class="line">			ExecReScan(innerPlan);</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">		<span class="comment">/*</span></span><br><span class="line"><span class="comment">		 * we have an outerTuple, try to get the next inner tuple.</span></span><br><span class="line"><span class="comment">		 */</span></span><br><span class="line">		ENL1_printf(<span class="string">&quot;getting new inner tuple&quot;</span>);</span><br><span class="line">		innerTupleSlot = ExecProcNode(innerPlan);		<span class="comment">// 获取新的内部节点（tuple）</span></span><br><span class="line">		econtext-&gt;ecxt_innertuple = innerTupleSlot;		<span class="comment">// 记录内表所在的tuple，更新上下文</span></span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (TupIsNull(innerTupleSlot))</span><br><span class="line">		&#123;</span><br><span class="line">			ENL1_printf(<span class="string">&quot;no inner tuple, need new outer tuple&quot;</span>);</span><br><span class="line">			node-&gt;nl_NeedNewOuter = <span class="literal">true</span>;</span><br><span class="line">			<span class="comment">/*</span></span><br><span class="line"><span class="comment">			* xht03:</span></span><br><span class="line"><span class="comment">			* If not all the tuples in the block have been matched,</span></span><br><span class="line"><span class="comment">			* or the join type is left-join or anti-join</span></span><br><span class="line"><span class="comment">			*/</span></span><br><span class="line">			<span class="keyword">if</span> (!node-&gt;nl_MatchedOuter &amp;&amp;</span><br><span class="line">				(node-&gt;js.jointype == JOIN_LEFT ||</span><br><span class="line">				 node-&gt;js.jointype == JOIN_ANTI))</span><br><span class="line">			&#123;</span><br><span class="line">				<span class="comment">/*</span></span><br><span class="line"><span class="comment">				 * We are doing an outer join and there were no join matches</span></span><br><span class="line"><span class="comment">				 * for this outer tuple.  Generate a fake join tuple with</span></span><br><span class="line"><span class="comment">				 * nulls for the inner tuple, and return it if it passes the</span></span><br><span class="line"><span class="comment">				 * non-join quals.</span></span><br><span class="line"><span class="comment">				 */</span></span><br><span class="line"></span><br><span class="line">				<span class="keyword">for</span>(<span class="type">int</span> i = <span class="number">0</span>; i &lt; block.size; i++)&#123;</span><br><span class="line">					econtext-&gt;ecxt_outertuple = block.tuple[i];</span><br><span class="line">					<span class="keyword">if</span>(!block.isMatched[i])&#123;</span><br><span class="line">                        <span class="comment">// set to a empty tuple</span></span><br><span class="line">						econtext-&gt;ecxt_innertuple = node-&gt;nl_NullInnerTupleSlot;</span><br><span class="line">                        </span><br><span class="line">                        <span class="comment">// 检查非连接条件（non-join quals）的其他条件是否满足</span></span><br><span class="line">						ENL1_printf(<span class="string">&quot;testing qualification for outer-join tuple&quot;</span>);</span><br><span class="line">						<span class="keyword">if</span> (otherqual == <span class="literal">NULL</span> || ExecQual(otherqual, econtext))</span><br><span class="line">						&#123;</span><br><span class="line">							<span class="comment">/*</span></span><br><span class="line"><span class="comment">						 	* qualification was satisfied so we project and return</span></span><br><span class="line"><span class="comment">						 	* the slot containing the result tuple using</span></span><br><span class="line"><span class="comment">						 	* ExecProject().</span></span><br><span class="line"><span class="comment">						 	*/</span></span><br><span class="line">							ENL1_printf(<span class="string">&quot;qualification succeeded, projecting tuple&quot;</span>);</span><br><span class="line">							<span class="keyword">return</span> ExecProject(node-&gt;js.ps.ps_ProjInfo);</span><br><span class="line">						&#125;</span><br><span class="line">						<span class="keyword">else</span></span><br><span class="line">							InstrCountFiltered2(node, <span class="number">1</span>);</span><br><span class="line">					&#125;</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="comment">/*</span></span><br><span class="line"><span class="comment">			 * Otherwise just return to top of loop for a new outer tuple.</span></span><br><span class="line"><span class="comment">			 */</span></span><br><span class="line">			<span class="keyword">continue</span>;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">/*</span></span><br><span class="line"><span class="comment">		 * at this point we have a new pair of inner and outer tuples so we</span></span><br><span class="line"><span class="comment">		 * test the inner and outer tuples to see if they satisfy the node&#x27;s</span></span><br><span class="line"><span class="comment">		 * qualification.</span></span><br><span class="line"><span class="comment">		 *</span></span><br><span class="line"><span class="comment">		 * Only the joinquals determine MatchedOuter status, but all quals</span></span><br><span class="line"><span class="comment">		 * must pass to actually return the tuple.</span></span><br><span class="line"><span class="comment">		 */</span></span><br><span class="line">		ENL1_printf(<span class="string">&quot;testing qualification&quot;</span>);</span><br><span class="line">		</span><br><span class="line">		<span class="comment">// 测试是否满足 join 条件</span></span><br><span class="line">		<span class="comment">// xht03</span></span><br><span class="line">		<span class="type">int</span> matched_num = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">for</span>(<span class="type">int</span> i = <span class="number">0</span>; i &lt; block.size; i++)&#123;</span><br><span class="line">			econtext-&gt;ecxt_outertuple = block.tuple[i];</span><br><span class="line">			<span class="keyword">if</span> (ExecQual(joinqual, econtext))</span><br><span class="line">			&#123;</span><br><span class="line">				<span class="comment">//xht03</span></span><br><span class="line">				<span class="keyword">if</span>(!block.isMatched[i])&#123;</span><br><span class="line">					matched_num++;</span><br><span class="line">					block.isMatched[i] = <span class="literal">true</span>;</span><br><span class="line">				&#125;</span><br><span class="line"></span><br><span class="line">				<span class="comment">/*</span></span><br><span class="line"><span class="comment">				* If we only need to join to the first matching inner tuple, then</span></span><br><span class="line"><span class="comment">				* consider returning this one, but after that continue with next</span></span><br><span class="line"><span class="comment">				* outer tuple.</span></span><br><span class="line"><span class="comment">				*/</span></span><br><span class="line">			</span><br><span class="line">				<span class="keyword">if</span> (otherqual == <span class="literal">NULL</span> || ExecQual(otherqual, econtext))</span><br><span class="line">				&#123;</span><br><span class="line">					<span class="comment">/*</span></span><br><span class="line"><span class="comment">					* qualification was satisfied so we project and return the</span></span><br><span class="line"><span class="comment">					* slot containing the result tuple using ExecProject().</span></span><br><span class="line"><span class="comment">					*/</span></span><br><span class="line">					ENL1_printf(<span class="string">&quot;qualification succeeded, projecting tuple&quot;</span>);</span><br><span class="line">					<span class="keyword">return</span> ExecProject(node-&gt;js.ps.ps_ProjInfo);</span><br><span class="line">				&#125;</span><br><span class="line">				<span class="keyword">else</span></span><br><span class="line">					InstrCountFiltered2(node, <span class="number">1</span>);</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">else</span></span><br><span class="line">				InstrCountFiltered1(node, <span class="number">1</span>);</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">/*</span></span><br><span class="line"><span class="comment">		* xht03:</span></span><br><span class="line"><span class="comment">		* If all tuples in the block have been matched</span></span><br><span class="line"><span class="comment">		*/</span></span><br><span class="line">		<span class="keyword">if</span>(matched_num == block.size)</span><br><span class="line">		&#123;</span><br><span class="line">			node-&gt;nl_MatchedOuter = <span class="literal">true</span>;</span><br><span class="line">			<span class="comment">/* In an antijoin, we never return a matched tuple */</span></span><br><span class="line">			<span class="keyword">if</span> (node-&gt;js.jointype == JOIN_ANTI || node-&gt;js.single_match)</span><br><span class="line">			&#123;</span><br><span class="line">				node-&gt;nl_NeedNewOuter = <span class="literal">true</span>;</span><br><span class="line">			&#125;	</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">			</span><br><span class="line">		<span class="comment">/*</span></span><br><span class="line"><span class="comment">		 * Tuple fails qual, so free per-tuple memory and try again.</span></span><br><span class="line"><span class="comment">		 */</span></span><br><span class="line">		ResetExprContext(econtext);</span><br><span class="line">		ENL1_printf(<span class="string">&quot;qualification failed, looping&quot;</span>);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<hr>
+<h4 id="源代码测试"><a href="#源代码测试" class="headerlink" title="源代码测试"></a>源代码测试</h4><p>重新编译并安装 postgresql 后，设置 NESTED_BLOCK_SIZE &#x3D; 1、2、8、64、128、1024，运行下面语句两次，取第二次运行时间。</p>
+<blockquote>
+<p>在数据库命令行中输入：<code>\timing</code>，打开测时间功能。</p>
+</blockquote>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> <span class="built_in">count</span>(<span class="operator">*</span>) <span class="keyword">FROM</span> restaurantaddress ra, restaurantphone rp <span class="keyword">WHERE</span> ra.name <span class="operator">=</span> rp.name;</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AE%9E%E9%AA%8C/1024.png" alt="Timing"></p>
+<table>
+<thead>
+<tr>
+<th align="center">NESTED_BLOCK_SIZE</th>
+<th align="center">时间1&#x2F;ms</th>
+<th align="center">时间2&#x2F;ms</th>
+<th align="center">时间3&#x2F;ms</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">1</td>
+<td align="center">2.710</td>
+<td align="center">2.559</td>
+<td align="center">2.565</td>
+</tr>
+<tr>
+<td align="center">2</td>
+<td align="center">2.579</td>
+<td align="center">2.753</td>
+<td align="center">2.636</td>
+</tr>
+<tr>
+<td align="center">8</td>
+<td align="center">2.337</td>
+<td align="center">2.483</td>
+<td align="center">2.716</td>
+</tr>
+<tr>
+<td align="center">64</td>
+<td align="center">2.277</td>
+<td align="center">2.441</td>
+<td align="center">1.896</td>
+</tr>
+<tr>
+<td align="center">128</td>
+<td align="center">2.657</td>
+<td align="center">2.543</td>
+<td align="center">2.464</td>
+</tr>
+<tr>
+<td align="center">1024</td>
+<td align="center">2.871</td>
+<td align="center">2.743</td>
+<td align="center">2.778</td>
+</tr>
+</tbody></table>
+<p>这样的实验结果是符合预期的：</p>
+<ul>
+<li><strong>NESTED_BLOCK_SIZE</strong> 太小时，与 Simple Nested-Loop 相近；当 <strong>NESTED_BLOCK_SIZE</strong> 太大时，就相当于内外表互换后的 Simple Nested-Loop。所以当 <strong>NESTED_BLOCK_SIZE</strong> 取一个大小适中的值时，Block Nested-Loop 才能性能最大化。</li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%93-%E4%BA%8B%E5%8A%A1/" rel="prev" title="数据库笔记-事务">
+      <i class="fa fa-chevron-left"></i> 数据库笔记-事务
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%BC%95%E8%A8%80"><span class="nav-number">1.</span> <span class="nav-text">引言</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%B8%B8%E8%A7%81-join-%E7%AE%97%E6%B3%95"><span class="nav-number">2.</span> <span class="nav-text">常见 join 算法</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Simple-Nested-Loop-Join"><span class="nav-number">2.1.</span> <span class="nav-text">Simple Nested-Loop Join</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Index-Nested-Loop-Join"><span class="nav-number">2.2.</span> <span class="nav-text">Index Nested-Loop Join</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Block-Nested-Loop-join"><span class="nav-number">2.3.</span> <span class="nav-text">Block Nested-Loop join</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#PostgreSQL-%E5%AE%9E%E9%AA%8C"><span class="nav-number">3.</span> <span class="nav-text">PostgreSQL 实验</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%87%86%E5%A4%87%E5%B7%A5%E4%BD%9C"><span class="nav-number">3.1.</span> <span class="nav-text">准备工作</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%BA%90%E4%BB%A3%E7%A0%81%E8%A7%A3%E8%AF%BB"><span class="nav-number">3.2.</span> <span class="nav-text">源代码解读</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%BA%90%E4%BB%A3%E7%A0%81%E4%BF%AE%E6%94%B9"><span class="nav-number">3.3.</span> <span class="nav-text">源代码修改</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%BA%90%E4%BB%A3%E7%A0%81%E6%B5%8B%E8%AF%95"><span class="nav-number">3.4.</span> <span class="nav-text">源代码测试</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">xht03</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">9</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">6</span>
+        <span class="site-state-item-name">分类</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">xht03</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/pjax/pjax.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+  <script>
+var pjax = new Pjax({
+  selectors: [
+    'head title',
+    '#page-configurations',
+    '.content-wrap',
+    '.post-toc-wrap',
+    '.languages',
+    '#pjax'
+  ],
+  switches: {
+    '.post-toc-wrap': Pjax.switches.innerHTML
+  },
+  analytics: false,
+  cacheBust: false,
+  scrollTo : !CONFIG.bookmark.enable
+});
+
+window.addEventListener('pjax:success', () => {
+  document.querySelectorAll('script[data-pjax], script#page-configurations, #pjax script').forEach(element => {
+    var code = element.text || element.textContent || element.innerHTML || '';
+    var parent = element.parentNode;
+    parent.removeChild(element);
+    var script = document.createElement('script');
+    if (element.id) {
+      script.id = element.id;
+    }
+    if (element.className) {
+      script.className = element.className;
+    }
+    if (element.type) {
+      script.type = element.type;
+    }
+    if (element.src) {
+      script.src = element.src;
+      // Force synchronous loading of peripheral JS.
+      script.async = false;
+    }
+    if (element.dataset.pjax !== undefined) {
+      script.dataset.pjax = '';
+    }
+    if (code !== '') {
+      script.appendChild(document.createTextNode(code));
+    }
+    parent.appendChild(script);
+  });
+  NexT.boot.refresh();
+  // Define Motion Sequence & Bootstrap Motion.
+  if (CONFIG.motion.enable) {
+    NexT.motion.integrator
+      .init()
+      .add(NexT.motion.middleWares.subMenu)
+      .add(NexT.motion.middleWares.postList)
+      .bootstrap();
+  }
+  NexT.utils.updateSidebarPosition();
+});
+</script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <div id="pjax">
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://book-written-on-water.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  var disqus_config = function() {
+    this.page.url = "http://xht03.github.io/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AE%9E%E9%AA%8C/";
+    this.page.identifier = "2024/06/09/数据库实验/";
+    this.page.title = "Block Nested Loop Join";
+    };
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: disqus_config
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://book-written-on-water.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+    </div>
+</body>
+</html>
