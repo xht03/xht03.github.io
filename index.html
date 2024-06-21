@@ -146,6 +146,361 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://xht03.github.io/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%93-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="xht03">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="延绪的水上书">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%93-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/" class="post-title-link" itemprop="url">数据库笔记2：Concurrency Control</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2024-06-13 18:35:07" itemprop="dateCreated datePublished" datetime="2024-06-13T18:35:07+08:00">2024-06-13</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2024-06-21 21:32:41" itemprop="dateModified" datetime="2024-06-21T21:32:41+08:00">2024-06-21</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/The-Introduction-to-Database/" itemprop="url" rel="index"><span itemprop="name">The Introduction to Database</span></a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%93-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2024/06/13/数据库-并行控制/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h3 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h3><p>当数据库中多个事务并发执行时，事务的隔离性不一定能保持。为了保持事务的隔离性，数据库必须控制不同事务之间的互动。</p>
+<p>这里我们将介绍两种常见的<strong>并发控制（concurrency control）</strong>的机制：</p>
+<ul>
+<li>two-phase locking（二相锁）</li>
+<li>timestamp（时间戳）</li>
+</ul>
+<h3 id="二相锁"><a href="#二相锁" class="headerlink" title="二相锁"></a>二相锁</h3><p>就像“编辑在线文档”，为了避免自己写的内容被其他人篡改，最简单的方式就是：在自己编辑的时候给文档上锁，只有自己能修改其中的内容。等到修改完成后，再打开锁，允许其他人进行修改。</p>
+<p>数据库中也是类似的。</p>
+<hr>
+<h4 id="什么是锁"><a href="#什么是锁" class="headerlink" title="什么是锁"></a>什么是锁</h4><p>数据项可以被加上以下两种模式的锁：</p>
+<ul>
+<li><strong>共享锁</strong> shared mode (S)：数据项只能被读。</li>
+<li><strong>排他锁</strong> exclusive mode (X)：数据项可以被读或者写。</li>
+</ul>
+<p>显然，多个事务可以同时持有同一个数据的共享锁。但若有一个事务持有这个数据的排他锁，那么其他事务不能再持有该数据的共享锁。所以，不同锁之间也是存在<strong>兼容性（Lock-compatibility）</strong>的。</p>
+<p><img src="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%93-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/compatibility.png" alt="Lock-compatibility"></p>
+<p>当一个事务想访问一个数据时，它会向<strong>并发控制管理器（concurrency-control manager）</strong>发出请求。如果当前不存在与其不兼容的锁，则向该事务授权新锁；否则需要等待不兼容的锁全部被释放，才能再授权新锁。</p>
+<hr>
+<h4 id="基于锁的协议"><a href="#基于锁的协议" class="headerlink" title="基于锁的协议"></a>基于锁的协议</h4><p>但需要注意：<strong>上锁并不能保证调度是可序列化的</strong>。</p>
+<p>例如：A账户有100元，B账户有200元；T1是从B向A转账50元，T2是打印A、B账户金额总和。具体调度如下图。</p>
+<p><img src="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%93-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/example1.png" alt="example1"></p>
+<p>可以发现，这样的调度就不满足事务的一致性。原因在于：</p>
+<ul>
+<li>T1 过早的释放了数据B的锁。这导致 T2 误以为自己已经获得了所有需要的数据，就开始执行。但 T2 读取的A并不是 T1 更新后的值。</li>
+</ul>
+<p>因此我们还需要：<strong>基于锁的协议（Lock-Based Protocols）</strong>来对申请和释放锁进行规定。（所谓协议，就是一些需遵守的规则罢了）</p>
+<p>所以，针对上面例子，我们可以规定：<strong>释放锁被推迟到事务结束时</strong>。这样就能确保调度时可序列化的。</p>
+<blockquote>
+<p>Unlocking is delayed to the end of the transaction.</p>
+</blockquote>
+<hr>
+<h4 id="死锁"><a href="#死锁" class="headerlink" title="死锁"></a>死锁</h4><p>当我们使用锁时，可能出现以下这种情况：</p>
+<p><img src="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%93-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/deadlock.png" alt="deadlock"></p>
+<p>T3 和 T4 都需要数据 A、B。但 T3 持有B并给B上锁；T4 持有A并给A上锁。此时，T3 和 T4 都有彼此想要的数据项，但又都不愿意释放出自己手中的数据。于是调度就僵持在这里，无法进行。这种情况，我们称之为：<strong>死锁（deadlock）</strong>。</p>
+<hr>
+<p>就像《剪刀手爱德华》里说的：“如果我没有刀，我无法保护你；如果我拿着刀，我无法拥抱你。”如果不采用锁，无法保证事务的一致性；但如果采用锁，又会产生死锁的情况。</p>
+<p>“两害相权取其轻”。相较于数据的不一致，死锁是可以接受的。 处理死锁的思路一般有两种：</p>
+<ul>
+<li>预防：采用 deadlock prevention protocol，保证系统永远不会进入死锁状态。</li>
+<li>修复：允许系统进入死锁状态，进入后进行恢复就好。</li>
+</ul>
+<p>当系统有很高频率进入死锁状态时，“预防”是更好的选择。否则“进入后再恢复”是更高效的方案。</p>
+<hr>
+<p><strong>死锁预防（deadlock prevention）</strong>有以下两种常见方式：</p>
+<ul>
+<li>一个事务在执行的开始就把所有需要的数据上锁。要么一次性锁住所有需要的数据，要么一个也不锁。</li>
+<li>系统给所有资源分配一个全局的顺序号，事务必须按顺序请求资源。也就是说：如果一个事务已经持有了一个资源，它只能请求顺序号更大的资源，不能请求顺序号更小的资源。但如果一个事务需要请求顺序号更小的资源，它必须：1. 释放当前持有的所有锁；2. 按照顺序从小到大重新申请所有所需的资源。</li>
+</ul>
+<p>第一种策略易于实现，但缺点明显：在事务的开始时，系统难以预测它究竟需要哪些数据；其次这样的数据利用效率非常低。</p>
+<p>第二种策略可能不那么易于理解，我们举一个例子：</p>
+<p>假设有三个资源 A、B 和 C，它们的顺序号分别是 1、2 和 3。</p>
+<ul>
+<li>事务 T1 需要锁定资源 B 和 A。</li>
+<li>事务 T2 需要锁定资源 A 和 B。</li>
+</ul>
+<p>此时事务 T1 已经锁定资源 B，事务 T2 已经锁定资源 A。但由于 资源A顺序 &lt; 资源B顺序 ，事务 T1 不能锁定 A，所以它会释放资源 B，重新请求上锁，这样事务 T2 就能顺利获得资源 B，从而避免死锁。</p>
+<p>这种策略的优势在于：易于实现，不需要对底层的并发控制系统进行修改。</p>
+<hr>
+<p>死锁恢复一般采用<strong>抢占和回滚（preemption and transaction rollbacks）</strong>：其实就是，抢走一个事务手中的锁，并将这些锁给其他事务，并将被抢的事务回滚。但是谁抢走谁呢？这就需要一个判断标准：<strong>事务的时间戳（Transaction timestamps）</strong>。</p>
+<p>形象地比喻就是“银行办理业务”：每个人都会到大厅机器上取一个号码，这个就是你的时间戳。大家根据时间戳先后决定谁先办理业务。</p>
+<p>在数据库中也是相似的，一般有两种策略：</p>
+<ul>
+<li><strong>Wait-Die Scheme</strong>（new-die &amp; old-wait）：如果一个较老的事务请求一个被较新的事务持有的资源，那么较老的事务会等待。如果一个较新的事务请求一个被较老的事务持有的资源，那么较新的事务会被回滚。</li>
+<li><strong>Wound-Wait Scheme</strong>（new-wait &amp; old-die）：如果果一个较老的事务请求一个被较新的事务持有的资源，那么较新的事务会被立即回滚。如果一个较新的事务请求一个被较老的事务持有的资源，那么较新的事务会等待。</li>
+</ul>
+<p>举例说明一下：</p>
+<ul>
+<li>事务 T14、T15 和 T16 的时间戳分别为 5、10 和 15。</li>
+<li>在 Wait-Die 方案下：如果 T14 请求一个由 T15 持有的数据项，那么 T14 将会等待。如果 T16 请求一个由 T15 持有的数据项，那么 T16 将会被回滚。</li>
+<li>在 Wound-Wait 方案下：如果 T14 请求一个由 T15 持有的数据项，那么数据项将从 T15 中被抢占，T15 将会被回滚。如果 T16 请求一个由 T15 持有的数据项，那么 T16 将会等待。</li>
+</ul>
+<p>但这两种策略都会带来不必要的回滚。</p>
+<hr>
+<p>还有一种解决死锁的方式：<strong>锁超时（lock-timeout）</strong>：申请锁的事务最多等待一定时间，如果没有得到锁，则该事务自动回滚，并重启。</p>
+<p>这种方式介于预防和恢复之间。但超时的时间限制（timeout interval）是不好把握的。太长，死锁卡住的时间就久；太短，一个事务太没耐心，从而可能不停回滚。</p>
+<hr>
+<h4 id="饿死"><a href="#饿死" class="headerlink" title="饿死"></a>饿死</h4><p>当我们使用锁时，会出现以下这种情况：</p>
+<ul>
+<li>一个事务可能在等待某个数据的排他锁，同时，许多其他事务请求并获得了该项目上的S锁（共享锁）。</li>
+</ul>
+<p>形象的比喻就是“银行业务办理窗口”：</p>
+<ul>
+<li>事务比作人，数据比作窗口，若干事务正在排队访问数据。你前面有一个人正在读数据，但你是想写数据，你只能等待。这这时后面的人说：“嘿，我就读数据，让我凑过去看一眼”，于是他插队到你前面（获得了共享锁）。后面所有想读数据的人，都能这样插队到你前面。即使最开始的读数据的人已经完成离开了，但还有新的人正在读数据。如此，你就一直无法获取到写数据的排他锁。</li>
+</ul>
+<p>这种情况，我们称之为：<strong>饿死（Starvation）</strong>。</p>
+<p>避免这样的“插队”问题，也是很简单的——遵守“先来后到”的规则就好。具体如下。</p>
+<p>当事务T请求数据Q的M型锁时，并发控制管理器授权加锁的条件是：</p>
+<ul>
+<li>此时，数据Q上没有与M不兼容的锁</li>
+<li>此时，不存在 “正在等待加锁的” 且 “排队在事务T之前的” 的事务。</li>
+</ul>
+<hr>
+<h4 id="二相锁协议"><a href="#二相锁协议" class="headerlink" title="二相锁协议"></a>二相锁协议</h4><blockquote>
+<p>在 two-phase locking protocol 中：释放锁不必须在事务结束时进行。</p>
+</blockquote>
+<p>二相锁协议是<strong>能保证调度可序列化的</strong>。它要求每个事务分两个阶段提出加锁、解锁的申请：</p>
+<ul>
+<li><strong>growing phase</strong>：事务只能获得锁。</li>
+<li><strong>shrinking phase</strong>：事务只能释放锁。</li>
+</ul>
+<p>例如下图中：T1 和 T2 就不是二相锁，T3 和 T4 就是二相锁。（且将<code>unlock(B)</code>提前到<code>lock-X(A)</code>后面执行，也仍是遵守协议的）</p>
+<p><img src="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%93-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/example2.png" alt="example2"></p>
+<p>对于任何事务，它获得它的最后一个锁的时候，也就是增长阶段结束的时候，我们称之为：事务的<strong>封锁点（lock point）</strong>。</p>
+<p>二相锁是可序列化的，且：<strong>各个事务实际上就是按照 lock point 的先后进行顺序执行完成的。</strong></p>
+<p><img src="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%93-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/two-phase.png" alt="two phase lock"></p>
+<p>但二相锁并不是完美的：</p>
+<ul>
+<li>二相锁<strong>不能避免死锁</strong>的问题。</li>
+<li>二项锁<strong>不是无级联的</strong>。它仍然可能出现级联回滚（cascading roll back）的情况。</li>
+</ul>
+<p>为了避免级联回滚，我们可以提出更严格的二相锁协议：</p>
+<ul>
+<li><strong>Strict two-phase locking protocol</strong>：一个事务必须持有 <em>所有的排他锁</em> 直到它提交或中止。</li>
+<li><strong>Rigorous two-phase locking protocol</strong>：一个事务必须持有 <em>所有锁</em> 直到它提交或中止。</li>
+</ul>
+<p>其中后者的序列化的顺序是按照事务的提交时间（而不再是lock point）。</p>
+<hr>
+<h4 id="锁的转换"><a href="#锁的转换" class="headerlink" title="锁的转换"></a>锁的转换</h4><p>共享锁和排他锁时可以相互转换的，通过<strong>升级（upgrading）</strong>和<strong>降级（downgrading）</strong>。</p>
+<p>例如：当事务T已经拥有S锁，且又需要X锁时：它可以将S锁升级成X锁。</p>
+<p><img src="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%93-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/conversion.png" alt="conversion"></p>
+<p>但锁的升级和降级不是能乱来的：</p>
+<ul>
+<li>升级只能发生在 growing phase</li>
+<li>降级只能发生在 shrinking phase</li>
+</ul>
+<p>且进行锁转换时也需要注意：是否与当前已有的锁兼容。若不兼容，则需要等待。</p>
+<p>所以，当一个事务需要锁时，并不是直接申请，而是先检查是否已有锁。若有，则请求升级或者降级；若无，再申请加锁。</p>
+<blockquote>
+<p>大部分数据库都采用 Strict two-phase locking protocol 和 lock conversion 的机制。</p>
+</blockquote>
+<hr>
+<h4 id="锁管理器"><a href="#锁管理器" class="headerlink" title="锁管理器"></a>锁管理器</h4><p>锁管理器（lock manager）就是一个<strong>进程</strong>，并维护一个记录已有锁和等待锁的数据结构——<strong>锁表（lock table）</strong>。各个事务向其发送加锁、解锁的请求。</p>
+<p>锁表结构如下图所示：</p>
+<ul>
+<li>用哈希链表存储各个数据项17、123、1912、14、144</li>
+<li>某一个数据项上的锁，存储在指向当前数据项的链表中。第一个是被授权的锁，后续的是正在等待的锁。</li>
+<li>例如：T2 申请 “数据123” 上的排他锁，此时 T1 和 T8 已持有其共享锁。那么 T2 的申请会被添加到 “数据123” 的链表的末尾。</li>
+<li>如果一个事务终止（aborted），锁管理器会释放该事务持有的所有锁。</li>
+</ul>
+<p><img src="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%93-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/lock-table.png" alt="lock table"></p>
+<hr>
+<h3 id="多粒度"><a href="#多粒度" class="headerlink" title="多粒度"></a>多粒度</h3><p>截至目前，我们讨论的并发控制都是以一个个数据为单位，但实际情况中，一个事务可能请求访问整个数据库的内容，这时一个个数据的上锁会非常耽误时间，我们希望能直接一次请求就能锁住整个数据库。所以，我们需要根据各种数据项大小，定义数据粒度的层次。</p>
+<p><strong>多粒度机制（Multiple granularity mechanism）</strong>允许数据项具有不同的大小，并定义一个数据粒度的层次结构，其中较小的粒度嵌套在较大的粒度之内。这样的层次结构可以用树状图形来表示。树中的每个节点都可以单独加锁。当一个事务显式地锁定树中的一个节点时，它隐式地以相同的模式锁定该节点的所有子孙节点。</p>
+<p><img src="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%93-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/tree.png" alt="granularity"></p>
+<p>但是，每一次加锁，都需要判定当前节点是否能加锁。例如：事务 T1 想给 A1 加共享锁，但是系统必须检查 A1 的所有子节点中是否有排他锁。若有，则不能加锁。但如果每次加锁都需要搜索整个树，就违背了多粒度机制的初衷——快速地给大量数据加锁。</p>
+<p>所以我们引入了一种新的锁的模式：<strong>意向锁（intention lock mode）</strong>。</p>
+<hr>
+<h4 id="意向锁"><a href="#意向锁" class="headerlink" title="意向锁"></a>意向锁</h4><blockquote>
+<p>意向锁也是可能出现死锁的。</p>
+</blockquote>
+<p>意向锁有五种锁的模式：</p>
+<ul>
+<li>S（共享锁）</li>
+<li>X（排他锁）</li>
+<li><strong>IS（共享意向锁）</strong>：表明将要在更低层次加共享锁。</li>
+<li><strong>IX（排他意向锁）</strong>：表明将要在更低层次加排他锁。</li>
+<li><strong>SIX（共享排他意向锁）</strong>：表明在更高层次加了共享锁，并且将要在更低层次加独占锁。（SIX &#x3D; S + IX）</li>
+</ul>
+<p><img src="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%93-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/intention-lock.png" alt="intention lock"></p>
+<p>核心想法就是：增加 IS、IX、SIX 模式，来反映子节点的上锁情况。这样给当前节点上锁时，就不必搜索当前节点的子树，检查当前节点的锁就能知道其子节点的上锁情况。当我们给一个节点上意向锁时，我们只需要更新当前节点和其父节点的锁即可，不需要更改其子节点的锁。</p>
+<p>事务 T<sub>i</sub> 可以使用以下规则锁定节点 Q：</p>
+<ul>
+<li>必须遵守上图种的锁兼容矩阵。</li>
+<li>必须首先锁定树的根节点，并且可以以任何模式锁定。</li>
+<li>事务 T<sub>i</sub> 只有在 Q 的父节点被 T<sub>i</sub> 以 IX 或 IS 模式锁定时，才能以 S 或 IS 模式锁定节点 Q。</li>
+<li>事务 T<sub>i</sub> 只有在 Q 的父节点被 T<sub>i</sub> 以 IX 或 SIX 模式锁定时，才能以 X、SIX 或 IX 模式锁定节点 Q。</li>
+<li>事务 T<sub>i</sub> 只有在之前没有解锁过任何节点的情况下才能锁定节点（即：T<sub>i</sub> 遵循二相锁协议）。</li>
+<li>事务 T<sub>i</sub> 只有在 Q 的子节点都没有被 T<sub>i</sub> 锁定的情况下才能解锁节点 Q。</li>
+</ul>
+<p>请注意：锁定是从根到叶节点的顺序进行的，而解锁是从叶到根的顺序进行的。</p>
+<p>举例说明一下，假设依次发生以下请求：</p>
+<ul>
+<li><p>事务 T<sub>1</sub> 读取记录 r<sub>a<sub>1</sub></sub> 。</p>
+<p><img src="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%93-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/example3.1.png" alt="example3.1"></p>
+</li>
+<li><p>事务 T<sub>2</sub> 更新记录 r<sub>a<sub>2</sub></sub> 。</p>
+<p><img src="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%93-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/example3.2.png" alt="example3.2"></p>
+</li>
+<li><p>事务 T<sub>3</sub> 读取文件 F<sub>a</sub> 。（但此时 S<sub>T<sub>3 </sub></sub> 锁和 IX<sub>T<sub>2</sub></sub> 锁相矛盾了，所以 T<sub>3</sub> 会进行等待）</p>
+<p><img src="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%93-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/example3.3.png" alt="example3.3"></p>
+</li>
+</ul>
+<h3 id="时间戳"><a href="#时间戳" class="headerlink" title="时间戳"></a>时间戳</h3><p>之前基于锁的各种协议，最终可序列化的顺序都是由上锁的时刻决定。现在我们介绍第二种实现并行控制的方法：<strong>基于时间戳的协议（Timestamp-Based Protocols）</strong>。这种方法的事务可序列化顺序是预先决定的。</p>
+<hr>
+<h4 id="事务时间戳"><a href="#事务时间戳" class="headerlink" title="事务时间戳"></a>事务时间戳</h4><p>每个事务 T<sub>i</sub> 都会被分配一个唯一的固定时间戳 TS(T<sub>i</sub>)。这个时间戳在事务 T<sub>i</sub> 开始执行之前由数据库系统分配。</p>
+<ul>
+<li><p>如果事务 T<sub>i</sub> 被分配了时间戳 TS(T<sub>i</sub>)，并且有一个新的事务 T<sub>j</sub> 进入系统，那么 TS(T<sub>i</sub>) &lt; TS(T<sub>j</sub>)。</p>
+</li>
+<li><p>有两种简单的方法来实现时间戳方案：</p>
+<ul>
+<li><p>使用<strong>系统时钟</strong>的值作为时间戳——事务的时间戳等于事务进入系统时的时钟值。</p>
+</li>
+<li><p>使用<strong>逻辑计数器</strong>，该计数器在分配新时间戳后递增——事务的时间戳等于事务进入系统时计数器的值。</p>
+</li>
+</ul>
+</li>
+</ul>
+<p><strong>时间戳决定了可串行化的顺序</strong>。</p>
+<ul>
+<li>如果 TS(T<sub>i</sub>) &lt; TS(T<sub>j</sub>)，则生成度必须等效于一个串行调度，其中 T<sub>i</sub> 出现在事务 T<sub>j</sub> 之前。</li>
+</ul>
+<hr>
+<h4 id="数据时间戳"><a href="#数据时间戳" class="headerlink" title="数据时间戳"></a>数据时间戳</h4><p>为了实现这个方案，协议为每个数据项 Q 维护两个时间戳值：</p>
+<ul>
+<li>**W-timestamp(Q)**：成功执行写操作 write(Q) 的任意事务的最大时间戳。</li>
+<li>**R-timestamp(Q)**：成功执行读操作 read(Q) 的任意事务的最大时间戳。</li>
+</ul>
+<p>当新的指令（read(Q) 或 write(Q)）执行时，时间戳会被更新。</p>
+<hr>
+<h4 id="时间戳协议"><a href="#时间戳协议" class="headerlink" title="时间戳协议"></a>时间戳协议</h4><p>时间戳排序协议确保：<strong>任何冲突的读写操作按照时间戳顺序执行</strong>。</p>
+<p>假设事务 T<sub>i</sub> 执行一个<strong>读操作</strong> read(Q)：</p>
+<ul>
+<li><p>如果 TS(T<sub>i</sub>) &lt; W-timestamp(Q)，那么 T<sub>i</sub> 需要读取一个已被后续事务覆盖的数据值。因此，读操作会被拒绝，并且 T<sub>i</sub> 将被回滚。</p>
+</li>
+<li><p>如果 TS(T<sub>i</sub>) ≥ W-timestamp(Q)，则读操作会被执行，并且 R-timestamp(Q) 被设置为 R-timestamp(Q) 和 TS(T<sub>i</sub>) 中的最大值。</p>
+</li>
+</ul>
+<p>假设事务 执行一个<strong>写操作</strong> write(Q)：</p>
+<ul>
+<li><p>如果 TS(T<sub>i</sub>) &lt; R-timestamp(Q)，则表示 T<sub>i</sub> 正想写一个已经被后续事务读取了的数据 Q 的值，但系统认为这个值不会再被产生。因此，写操作会被拒绝，并且 T<sub>i</sub> 将被回滚。</p>
+</li>
+<li><p>如果 TS(T<sub>i</sub>) &lt; W-timestamp(Q)，则表示 T<sub>i</sub> 尝试写入一个已经过时的 Q 的值。因此，这个写操作也会被拒绝，并且 T<sub>i</sub> 将被回滚。</p>
+</li>
+<li><p>否则，写操作会被执行，并且设置 W-timestamp(Q) &#x3D; TS(T<sub>i</sub>)。</p>
+</li>
+</ul>
+<p>请注意：如果一个事务被回滚了，系统会重新给它分配一个时间戳，并重启它。</p>
+<p>时间戳协议保证了所有事务按照时间戳的顺序执行完成。所以，<strong>在时间戳协议里，不会出现死锁</strong>。但是仍然可能出现饿死的情况：一系列短事务可能会不断的被重启，因为一些长事务一直在执行。</p>
+<p><img src="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%93-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/time-stamp.png" alt="timestamp serializability"></p>
+<hr>
+<p>时间戳协议虽然避免了死锁的问题，但它<strong>不能避免级联</strong>，而且很可能<strong>不是可恢复的</strong>。</p>
+<p>举例说明一下。假设事务 T<sub>i</sub> 中止（abort），但是事务 T<sub>j</sub> 已经读取了由 T<sub>i</sub> 写入的数据项：</p>
+<ul>
+<li>那么事务 T<sub>j</sub> 必须中止（abort）。如果允许 T<sub>j</sub> 先提交，那么该调度就不是可恢复的。</li>
+<li>此外，任何已经读取了由 T<sub>j</sub> 写入的数据项的事务都必须中止（abort）。</li>
+<li>这可能导致级联回滚，即一系列的事务被迫回滚。</li>
+</ul>
+<p>这个问题的核心在于：当数据项 Q 在“被事务 T<sub>j</sub> 写后”和“事务 T<sub>j</sub> 提交”之间的时间里，数据项 Q 并不是盖棺定论的，可能因事务 T<sub>j</sub> 的回滚而改变，但数据项 Q 又可能被其他事务读取。所以解决方法的核心也就是：让所有事务都等到数据盖棺定论的时候再读取。</p>
+<p>常见解决方法有以下三种：</p>
+<ul>
+<li>在事务结束时一次性执行所有写操作。</li>
+<li>延迟读取未提交数据项，直到更新该数据项的事务已提交为止。</li>
+<li>跟踪未提交的写操作，只允许事务 T<sub>i</sub> 在读取的值都是由已提交事务写入后才能提交（即提交依赖）。</li>
+</ul>
+<hr>
+<h4 id="Thomas-写规则"><a href="#Thomas-写规则" class="headerlink" title="Thomas 写规则"></a>Thomas 写规则</h4><p>在时间戳协议的基础上，我们可以进一步增强数据库系统的并行能力。</p>
+<p>考虑下图中的例子：事务 T<sub>27 </sub> 因为 <code>write(Q)</code> 操作被迫回滚。但实际上，按照“事务 T<sub>27 </sub> 先执行，事务 T<sub>28</sub> 后执行”的顺序，事务 T<sub>27</sub> 的 <code>write(Q)</code> 操作实际上会被事务 T<sub>28</sub> 的 <code>write(Q)</code> 操作覆盖掉。也就是说：事务 T<sub>27</sub> 的 <code>write(Q)</code> 操作根本没必要执行，事务 T<sub>27</sub> 也不必回滚。</p>
+<p><img src="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%93-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/example4.png" alt="example4"></p>
+<p><strong>对于过时的写操作，我们进行忽略</strong>。于是有了 <strong>Thomas’ Write Rule</strong>。</p>
+<p>假设事务 T<sub>i</sub> 发出写操作 write(Q)。</p>
+<ol>
+<li>如果 TS(T<sub>i</sub>) &lt; R-timestamp(Q)：则表示 T<sub>i</sub> 正在更新一个已经被后续事务读取了的 Q，而系统曾假定这个值不会再被产生。因此，系统拒绝写操作，并回滚事务 T<sub>i</sub>。（与原协议相同）</li>
+<li>如果 TS(T<sub>i</sub>) &lt; W-timestamp(Q)：则表示 T<sub>i</sub> 尝试写入一个过时的 Q 的值。根据修改后的规则，这个写操作可以被忽略。<strong>（新规则）</strong></li>
+<li>否则：系统执行写操作，并将 W-timestamp(Q) 设置为 TS(T<sub>i</sub>)。（与原协议相同）</li>
+</ol>
+<hr>
+<h4 id="（视图）可序列化"><a href="#（视图）可序列化" class="headerlink" title="（视图）可序列化"></a>（视图）可序列化</h4><p>通过忽略过时的写操作，Thomas 的写入规则允许产生：<strong>不符合冲突可串行化但是正确的</strong>调度。这就促使我们定义一种新的可序列化：视图可串行化。</p>
+<p>如果两个调度 S 和 S’ 包含相同的一组事务，并且满足以下三个条件，那么它们被称为<strong>视图等价</strong>。</p>
+<blockquote>
+<p>第1、2条件保证了相同的值和计算。第2、3个条件保证了相同的最终状态。</p>
+</blockquote>
+<ul>
+<li><strong>对于每个数据项 Q</strong>，如果事务 T<sub>i</sub> 在调度 S 中读取了 Q 的初始值，则在调度 S’ 中，事务 T<sub>i</sub> 也必须读取 Q 的初始值。<strong>（确保读取相同的初始值）</strong></li>
+<li><strong>对于每个数据项 Q</strong>，如果事务 T<sub>i</sub> 在调度 S 中执行了 read(Q) 操作，并且这个值是由事务 T<sub>j</sub> 执行的 write(Q) 操作产生的，则在调度 S’ 中，事务 T<sub>i</sub> 也必须读取到由同一个事务 T<sub>j</sub> 执行的 write(Q) 操作产生的值。<strong>（确保读取由同一事务写入的值）</strong></li>
+<li><strong>对于每个数据项 Q</strong>，在调度 S 中执行最终的 write(Q) 操作的事务（如果有的话），在调度 S’ 中也必须执行最终的 write(Q) 操作。<strong>（确保执行相同的最终写操作）</strong></li>
+</ul>
+<p>如果它与某个串行调度视图等价，调度 S 是<strong>视图可串行化（View Serializable）</strong>的。</p>
+<p><img src="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%93-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/view-serializability.png" alt="View Serializability"></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="http://xht03.github.io/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AE%9E%E9%AA%8C/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -403,7 +758,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%93-%E4%BA%8B%E5%8A%A1/" class="post-title-link" itemprop="url">数据库笔记-事务</a>
+            <a href="/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%93-%E4%BA%8B%E5%8A%A1/" class="post-title-link" itemprop="url">数据库笔记1：Transaction</a>
         </h2>
 
         <div class="post-meta">
@@ -420,7 +775,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2024-06-10 10:54:15" itemprop="dateModified" datetime="2024-06-10T10:54:15+08:00">2024-06-10</time>
+                <time title="修改时间：2024-06-21 21:32:01" itemprop="dateModified" datetime="2024-06-21T21:32:01+08:00">2024-06-21</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2124,7 +2479,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">9</span>
+          <span class="site-state-item-count">10</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
@@ -2134,7 +2489,7 @@
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
-        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-count">3</span>
         <span class="site-state-item-name">标签</span>
       </div>
   </nav>
