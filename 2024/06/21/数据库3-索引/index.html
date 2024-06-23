@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"xht03.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":"default"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":true,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="引言就像查字典有拼音索引、部首索引、笔画索引一样，为了方便查询，数据库中也有索引。主要有以下两种索引：  顺序索引（Ordered indices） 哈希索引（Hash indices）  首先，我们介绍一些预备知识。 查询记录时，我们会根据一个属性或者多个属性进行搜索。这个属性集，我们称为：搜索码（search key）。 索引包含若干索引项。索引项（index entry）由一个搜索码值和指向">
+<meta property="og:type" content="article">
+<meta property="og:title" content="数据库笔记3：Indexing and Hashing">
+<meta property="og:url" content="http://xht03.github.io/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/index.html">
+<meta property="og:site_name" content="延绪的水上书">
+<meta property="og:description" content="引言就像查字典有拼音索引、部首索引、笔画索引一样，为了方便查询，数据库中也有索引。主要有以下两种索引：  顺序索引（Ordered indices） 哈希索引（Hash indices）  首先，我们介绍一些预备知识。 查询记录时，我们会根据一个属性或者多个属性进行搜索。这个属性集，我们称为：搜索码（search key）。 索引包含若干索引项。索引项（index entry）由一个搜索码值和指向">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://xht03.github.io/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/secondary-index.png">
+<meta property="og:image" content="http://xht03.github.io/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/dense-index.png">
+<meta property="og:image" content="http://xht03.github.io/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/sparse-index.png">
+<meta property="og:image" content="http://xht03.github.io/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/B-plus.png">
+<meta property="og:image" content="http://xht03.github.io/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/B-plus-example.png">
+<meta property="og:image" content="http://xht03.github.io/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/node-structure.png">
+<meta property="og:image" content="http://xht03.github.io/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/k-condition.png">
+<meta property="og:image" content="http://xht03.github.io/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/query-example.png">
+<meta property="og:image" content="http://xht03.github.io/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/split-example1.1.png">
+<meta property="og:image" content="http://xht03.github.io/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/split-node.png">
+<meta property="og:image" content="http://xht03.github.io/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/split-result.png">
+<meta property="og:image" content="http://xht03.github.io/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/insert-result.png">
+<meta property="og:image" content="http://xht03.github.io/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/delete-process.png">
+<meta property="og:image" content="http://xht03.github.io/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/delete-example2.png">
+<meta property="og:image" content="http://xht03.github.io/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/delete-example3.png">
+<meta property="og:image" content="http://xht03.github.io/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/B-tree.png">
+<meta property="og:image" content="http://xht03.github.io/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/static-hash.png">
+<meta property="og:image" content="http://xht03.github.io/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/overflow-bucket.png">
+<meta property="og:image" content="http://xht03.github.io/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/extendable-hash1.png">
+<meta property="og:image" content="http://xht03.github.io/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/extendable-example2.png">
+<meta property="og:image" content="http://xht03.github.io/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/exetendable-example3.png">
+<meta property="og:image" content="http://xht03.github.io/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/extendable-example4.png">
+<meta property="og:image" content="http://xht03.github.io/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/range-query.png">
+<meta property="og:image" content="http://xht03.github.io/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/key-query.png">
+<meta property="og:image" content="http://xht03.github.io/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/bitmap.png">
+<meta property="article:published_time" content="2024-06-21T13:35:40.000Z">
+<meta property="article:modified_time" content="2024-06-23T07:15:00.477Z">
+<meta property="article:author" content="xht03">
+<meta property="article:tag" content="original">
+<meta property="article:tag" content="notes">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://xht03.github.io/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/secondary-index.png">
+
+<link rel="canonical" href="http://xht03.github.io/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>数据库笔记3：Indexing and Hashing | 延绪的水上书</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">延绪的水上书</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://xht03.github.io/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="xht03">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="延绪的水上书">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          数据库笔记3：Indexing and Hashing
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2024-06-21 21:35:40" itemprop="dateCreated datePublished" datetime="2024-06-21T21:35:40+08:00">2024-06-21</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2024-06-23 15:15:00" itemprop="dateModified" datetime="2024-06-23T15:15:00+08:00">2024-06-23</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/The-Introduction-to-Database/" itemprop="url" rel="index"><span itemprop="name">The Introduction to Database</span></a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2024/06/21/数据库3-索引/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h3 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h3><p>就像查字典有拼音索引、部首索引、笔画索引一样，为了方便查询，数据库中也有索引。主要有以下两种索引：</p>
+<ul>
+<li><strong>顺序索引（Ordered indices）</strong></li>
+<li><strong>哈希索引（Hash indices）</strong></li>
+</ul>
+<p>首先，我们介绍一些预备知识。</p>
+<p>查询记录时，我们会根据一个属性或者多个属性进行搜索。这个属性集，我们称为：<strong>搜索码（search key）</strong>。</p>
+<p>索引包含若干索引项。<strong>索引项（index entry）</strong>由一个搜索码值和指向记录的一个或多个指针构成。</p>
+<p>考虑到：数据库中更新记录，可以等价为先删除旧记录，在插入新记录。所以，我们只需要考虑插入索引和删除索引即可。</p>
+<h3 id="顺序索引"><a href="#顺序索引" class="headerlink" title="顺序索引"></a>顺序索引</h3><p>在顺序索引中，<strong>索引项是按照 search key 进行排序存储的</strong>。</p>
+<p>但是数据的存储顺序不一定与索引项的排序顺序相同。所以，根据是否与数据的排序顺序相符合，我们将索引分为两类：</p>
+<ul>
+<li><p><strong>主索引（ Clustering Index）</strong>：索引顺序与数据顺序相同。</p>
+</li>
+<li><p><strong>辅助索引（Non-clustering Index）</strong>：索引顺序与数据顺序不同。</p>
+<p><img src="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/secondary-index.png" alt="secondary index"></p>
+</li>
+</ul>
+<p>除了这种分类方式，还可以根据索引项的密度进行分类：</p>
+<ul>
+<li><p><strong>稠密索引（Dense Index）</strong>：每一个搜索码都对应地有一个索引项。</p>
+<p><img src="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/dense-index.png" alt="dense index (but not clustering)"></p>
+</li>
+<li><p><strong>稀疏索引（Sparse Index）</strong>：索引项只涵盖了部分搜索码的可能取值。</p>
+<p><img src="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/sparse-index.png" alt="sparse index"></p>
+</li>
+</ul>
+<p>请注意：<strong>辅助索引必须是稠密索引</strong>，即每个搜索码都有一个索引项。这是因为：辅助索引的顺序与数据顺序不同，如果一个搜索码没有对应的索引项，那么这个记录可能出现在数据库中的任何地方，那么索引也就失去作用了。</p>
+<p>显然，如果索引是聚集且稀疏的，查询一个记录则可以这么做：先在索引中寻找不大于当前搜索码值的最大索引，在从这个索引项指向的记录开始，依次往后搜索。</p>
+<p>所以，稀疏索引的好处时可以使用更少的空间来存储索引，但定位一个记录的时间会更慢一点。所以一个不错的权衡是：生成一个稀疏索引，<strong>为每一个块建一个索引项</strong>（generate a sparse index with an index entry for every block in file）。</p>
+<h3 id="B-树索引"><a href="#B-树索引" class="headerlink" title="B+树索引"></a>B+树索引</h3><h4 id="优缺点"><a href="#优缺点" class="headerlink" title="优缺点"></a>优缺点</h4><p>B+树索引的好处和缺点如下：</p>
+<table>
+<thead>
+<tr>
+<th align="center">优点</th>
+<th align="center">缺点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">每次插入删除会自动重组索引结构</td>
+<td align="center">每次插入删除都有额外的时间开销</td>
+</tr>
+<tr>
+<td align="center">不需要重组整个文件来维持性能</td>
+<td align="center">维持B+树的空间开销</td>
+</tr>
+</tbody></table>
+<hr>
+<h4 id="整体结构"><a href="#整体结构" class="headerlink" title="整体结构"></a>整体结构</h4><blockquote>
+<p>中间节点（internal nodes）：既不是根节点，也不是叶节点</p>
+</blockquote>
+<p>B+树是一个有根节点的树，且满足以下性质：</p>
+<ul>
+<li>所有从根节点到叶节点的路径都一样长。（平衡树）</li>
+<li>每个中间节点有 ⌈n&#x2F;2⌉ 到 n 个子节点。（n预先给定的）</li>
+<li>叶节点有 ⌈(n-1)&#x2F;2⌉ 到 n-1个值。</li>
+<li>如果根节点不是叶节点，则根节点至少有两个子节点。</li>
+<li>如果根节点是叶节点，则根节点有 0 到 (n-1) 个值。</li>
+</ul>
+<p><img src="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/B-plus.png" alt="B+ tree 1"></p>
+<p><img src="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/B-plus-example.png" alt="B+ tree 2"></p>
+<hr>
+<h4 id="节点结构"><a href="#节点结构" class="headerlink" title="节点结构"></a>节点结构</h4><p>对于非叶子节点：</p>
+<p><img src="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/node-structure.png" alt="B+ tree node structure"></p>
+<p>其中：</p>
+<ul>
+<li><p>指针个数 n 称为：<strong>扇出（fanout）</strong>。</p>
+</li>
+<li><p>**K<sub>1</sub> &lt; K<sub>2</sub> &lt; …… &lt; K<sub>n-1</sub>**（假设搜索码不会重复）</p>
+<p><img src="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/k-condition.png" alt="K-condition"></p>
+</li>
+</ul>
+<p>如果是叶子节点，则还有如下性质：</p>
+<ul>
+<li>最后一个指针 P<sub>n</sub> 指向下一个叶子节点。</li>
+<li>P<sub>i</sub> 指向的记录的搜索码取值为 K<sub>i</sub> 。</li>
+<li>如果叶节点 L<sub>i</sub> &lt; L<sub>j</sub> ，那么叶节点 L<sub>i</sub> 中所有记录的搜索码都小于等于 L<sub>j</sub> 中的。</li>
+</ul>
+<p>如果搜索码可能重复，那么 K<sub>i</sub> 序列不再是严格单增的。而是：<strong>K<sub>1</sub> &lt;&#x3D; K<sub>2</sub> &lt;&#x3D; …… &lt;&#x3D; K<sub>n-1</sub></strong></p>
+<hr>
+<h4 id="查询"><a href="#查询" class="headerlink" title="查询"></a>查询</h4><p>在 B+ 树种查找搜索码为 V 的记录，方法如下（伪代码表示）：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">set C = root node</span><br><span class="line"></span><br><span class="line">while(C is not a leaf node) &#123;</span><br><span class="line">    Let i = smallest number s.t. V &lt;= C.Ki</span><br><span class="line">    if no such i exists, then set C = C.Pm</span><br><span class="line">    	where Pm = last non-null pointer in the node</span><br><span class="line">    else if(V = C.Ki) then set C = C.Pi+1</span><br><span class="line">    else set C = C.Pi</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">Let i be the least value s.t. Ki = V</span><br><span class="line"></span><br><span class="line">if there is such a value i, return (C, i)</span><br><span class="line">else return null</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/query-example.png" alt="query example"></p>
+<hr>
+<h4 id="更新"><a href="#更新" class="headerlink" title="更新"></a>更新</h4><p>由于 B+ 树对每个节点的子节点数有限制，所以每次插入删除都可能需要：</p>
+<ul>
+<li><strong>Split</strong> a node if the node becomes too large.</li>
+<li><strong>Coalesce (合并)</strong> two or more nodes if a node becomes too  small.</li>
+</ul>
+<p>分裂和合并的规则描述起来比较复杂，我们直接看例子。</p>
+<ol>
+<li><p>插入”Adam”：</p>
+<ul>
+<li><p>先根据之前的查询的流程来定位。</p>
+</li>
+<li><p>插入“Adam”，检查是否需要分裂。若需要，则分裂。</p>
+</li>
+<li><p>子节点分裂可能导致父节点也需要分裂，所以需要一层层向上检查。</p>
+<p><img src="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/split-example1.1.png" alt="locate the node"></p>
+<p><img src="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/split-node.png" alt="split the node"></p>
+<p><img src="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/split-result.png" alt="split result"></p>
+</li>
+</ul>
+</li>
+<li><p>在1的基础上，再插入“Lamport”：</p>
+<ul>
+<li>与之前类似，不过这次插入导致上层节点也需要分裂。</li>
+</ul>
+<p><img src="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/insert-result.png" alt="insert result"></p>
+</li>
+<li><p>删除“Srinivasan”：</p>
+<ul>
+<li>删除目标节点。</li>
+<li>如果删除后子节点数不符合要求，那么与兄弟节点进行合并。</li>
+<li>合并后，父节点可能也需要合并，所以需要向上一层层检查。</li>
+</ul>
+<p><img src="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/delete-process.png" alt="delete example1"></p>
+</li>
+<li><p>再删除“Singh”和“Wu”：</p>
+<p><img src="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/delete-example2.png" alt="delete example2"></p>
+</li>
+<li><p>再删除“Gold”：</p>
+<p><img src="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/delete-example3.png" alt="delete example3"></p>
+</li>
+</ol>
+<hr>
+<h4 id="B-树索引-1"><a href="#B-树索引-1" class="headerlink" title="B 树索引"></a>B 树索引</h4><p>B 树类似于 B+ 树。B 树要求：<strong>每个搜索码的取值只能出现一次</strong>，从而消除重复储存搜索码的值。</p>
+<p><img src="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/B-tree.png" alt="B tree"></p>
+<p>B 树优点在于：</p>
+<ul>
+<li>使用了更少的节点</li>
+<li>可能更快地找到搜索码的值（因为不一定要遍历到叶节点）</li>
+</ul>
+<p>B 树缺点在于：</p>
+<ul>
+<li>只有很小一部分的搜索码的值是可以更快找到的。</li>
+<li>插入和删除操作都会更复杂</li>
+<li>实现也更加麻烦</li>
+</ul>
+<p>总的来说，B树不如B+树，缺点远胜优点。</p>
+<h3 id="哈希索引"><a href="#哈希索引" class="headerlink" title="哈希索引"></a>哈希索引</h3><p>之前的索引方式都需要建立一种索引结构，但哈希索引则可以避免：</p>
+<ul>
+<li>通过计算<strong>哈希函数（hash function）</strong>，可以由 search key 计算得到包含目标记录的块地址。</li>
+<li>A <strong>bucket</strong> is a unit of storage containing one or more records typically a disk block.</li>
+</ul>
+<hr>
+<h4 id="静态哈希"><a href="#静态哈希" class="headerlink" title="静态哈希"></a>静态哈希</h4><p>在静态哈希种，<strong>桶的数量是固定的</strong>。</p>
+<p>常见的哈希函数都是：<strong>计算搜索码的二进制表示，再模上桶的数量</strong>。</p>
+<p>例如下图中：根据dept_name，在instructor表上建立哈希索引。</p>
+<blockquote>
+<p>桶个数&#x3D;8。</p>
+<p>哈希函数是：将各字母在字母表中的序号相加，再 mod 8。</p>
+</blockquote>
+<p><img src="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/static-hash.png" alt="static hash"></p>
+<hr>
+<h4 id="溢出桶"><a href="#溢出桶" class="headerlink" title="溢出桶"></a>溢出桶</h4><p>但如果插入记录时，发现桶里已经装满了记录，这就是：<strong>桶溢出（Bucket Overflow）</strong>。一般有如下两种原因：</p>
+<ul>
+<li>桶确实不足。即使所有桶全部装满，也装不完全部记录。</li>
+<li>很多记录都装进了同一个桶，而其他很多桶还有很多空间。<strong>（Skew in distribution of records）</strong></li>
+</ul>
+<p>解决办法也很朴素：加桶（谁溢出，谁加桶）。</p>
+<p><img src="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/overflow-bucket.png" alt="overflow bucket"></p>
+<hr>
+<h4 id="动态哈希"><a href="#动态哈希" class="headerlink" title="动态哈希"></a>动态哈希</h4><p>静态哈希虽然易于实现，但缺点也明显：桶的数量是固定。</p>
+<ul>
+<li>如果设置的太小，那么需要不停的添加溢出桶，且一个 hash地址 中的记录也会非常多，导致查询效率降低。</li>
+<li>如果设置的太大，在数据规模还没起来时，大量空间被浪费了。</li>
+</ul>
+<p>所以我们希望：桶的数量能动态变化。这便是：动态哈希。</p>
+<p>这里，我们主要介绍：<strong>可扩充散列（Extendable Hashing）</strong>。</p>
+<p>可扩充散列的核心思想是：<strong>当存储的记录不多时，我们只使用 hash 值的前几位。当存在有桶溢出的情况时，我们再使用更多的 hash 值位数。</strong></p>
+<p>严格来说：</p>
+<ul>
+<li>假定 hash 函数产生的 hash 值是 b 位。</li>
+<li>设每个桶所对应的 hash 值是 i 位，（0 &lt;&#x3D; i &lt;&#x3D; b）。</li>
+<li>当一条记录经过 hash 函数计算得的 hash 值的前 i 位与桶的 hash 值相同时，这条记录存储在这个桶里。</li>
+<li>当这个桶溢出时，这个桶会分成两个桶。它们的 hash 值都是 i+1 位，且前 i 位继承原来桶的 hash 值，最后一位则分别时0、1。原来桶中的记录依据 hash 值分别装进新的两个桶中。</li>
+</ul>
+<p>具体来说，我们举例说明：</p>
+<p><img src="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/extendable-hash1.png" alt="example"></p>
+<ul>
+<li>插入“Mozart”：</li>
+</ul>
+<p><img src="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/extendable-example2.png" alt="Insert Mozart"></p>
+<ul>
+<li><p>插入“Einstein”：</p>
+<blockquote>
+<p>这时2号桶的 i<sub>2</sub> 需要加1，且 bucket address table 的前缀长度 &#x3D; max { i<sub>k</sub> | k &#x3D; 1, 2, … , b} 也会随着加1。</p>
+</blockquote>
+</li>
+</ul>
+<p><img src="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/exetendable-example3.png" alt="Insert Einstein"></p>
+<ul>
+<li>插入“Gold”：</li>
+</ul>
+<p><img src="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/extendable-example4.png" alt="Insert Gold"></p>
+<hr>
+<h4 id="一些比较"><a href="#一些比较" class="headerlink" title="一些比较"></a>一些比较</h4><p>如果是范围搜索，顺序索引更好。</p>
+<p><img src="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/range-query.png" alt="range query"></p>
+<p>如果是搜索某个具体的值，哈希索引更好。</p>
+<p><img src="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/key-query.png" alt="query based on a key"></p>
+<h3 id="位图索引"><a href="#位图索引" class="headerlink" title="位图索引"></a>位图索引</h3><p>位图索引（Bitmap Index）是一种特殊但非常高效的索引。但<strong>它一般只建立一个属性上，且该属性的可能取值很少</strong>（比如：性别、国家、省）。</p>
+<p>具体来说：</p>
+<ul>
+<li>这个属性的每一个取值都有相应的 bitmap。</li>
+<li>一个取值 V 的 bitmap 的第 i 位为1，表示第i条记录的该属性是 V。若是0，则不是 V。</li>
+</ul>
+<p><img src="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/bitmap.png" alt="bitmap"></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/original/" rel="tag"># original</a>
+              <a href="/tags/notes/" rel="tag"># notes</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%932-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/" rel="prev" title="数据库笔记2：Concurrency Control">
+      <i class="fa fa-chevron-left"></i> 数据库笔记2：Concurrency Control
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%BC%95%E8%A8%80"><span class="nav-number">1.</span> <span class="nav-text">引言</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%A1%BA%E5%BA%8F%E7%B4%A2%E5%BC%95"><span class="nav-number">2.</span> <span class="nav-text">顺序索引</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#B-%E6%A0%91%E7%B4%A2%E5%BC%95"><span class="nav-number">3.</span> <span class="nav-text">B+树索引</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BC%98%E7%BC%BA%E7%82%B9"><span class="nav-number">3.1.</span> <span class="nav-text">优缺点</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%95%B4%E4%BD%93%E7%BB%93%E6%9E%84"><span class="nav-number">3.2.</span> <span class="nav-text">整体结构</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%8A%82%E7%82%B9%E7%BB%93%E6%9E%84"><span class="nav-number">3.3.</span> <span class="nav-text">节点结构</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%9F%A5%E8%AF%A2"><span class="nav-number">3.4.</span> <span class="nav-text">查询</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%9B%B4%E6%96%B0"><span class="nav-number">3.5.</span> <span class="nav-text">更新</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#B-%E6%A0%91%E7%B4%A2%E5%BC%95-1"><span class="nav-number">3.6.</span> <span class="nav-text">B 树索引</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%93%88%E5%B8%8C%E7%B4%A2%E5%BC%95"><span class="nav-number">4.</span> <span class="nav-text">哈希索引</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%9D%99%E6%80%81%E5%93%88%E5%B8%8C"><span class="nav-number">4.1.</span> <span class="nav-text">静态哈希</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%BA%A2%E5%87%BA%E6%A1%B6"><span class="nav-number">4.2.</span> <span class="nav-text">溢出桶</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%8A%A8%E6%80%81%E5%93%88%E5%B8%8C"><span class="nav-number">4.3.</span> <span class="nav-text">动态哈希</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%B8%80%E4%BA%9B%E6%AF%94%E8%BE%83"><span class="nav-number">4.4.</span> <span class="nav-text">一些比较</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BD%8D%E5%9B%BE%E7%B4%A2%E5%BC%95"><span class="nav-number">5.</span> <span class="nav-text">位图索引</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">xht03</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">11</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">xht03</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/pjax/pjax.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+  <script>
+var pjax = new Pjax({
+  selectors: [
+    'head title',
+    '#page-configurations',
+    '.content-wrap',
+    '.post-toc-wrap',
+    '.languages',
+    '#pjax'
+  ],
+  switches: {
+    '.post-toc-wrap': Pjax.switches.innerHTML
+  },
+  analytics: false,
+  cacheBust: false,
+  scrollTo : !CONFIG.bookmark.enable
+});
+
+window.addEventListener('pjax:success', () => {
+  document.querySelectorAll('script[data-pjax], script#page-configurations, #pjax script').forEach(element => {
+    var code = element.text || element.textContent || element.innerHTML || '';
+    var parent = element.parentNode;
+    parent.removeChild(element);
+    var script = document.createElement('script');
+    if (element.id) {
+      script.id = element.id;
+    }
+    if (element.className) {
+      script.className = element.className;
+    }
+    if (element.type) {
+      script.type = element.type;
+    }
+    if (element.src) {
+      script.src = element.src;
+      // Force synchronous loading of peripheral JS.
+      script.async = false;
+    }
+    if (element.dataset.pjax !== undefined) {
+      script.dataset.pjax = '';
+    }
+    if (code !== '') {
+      script.appendChild(document.createTextNode(code));
+    }
+    parent.appendChild(script);
+  });
+  NexT.boot.refresh();
+  // Define Motion Sequence & Bootstrap Motion.
+  if (CONFIG.motion.enable) {
+    NexT.motion.integrator
+      .init()
+      .add(NexT.motion.middleWares.subMenu)
+      .add(NexT.motion.middleWares.postList)
+      .bootstrap();
+  }
+  NexT.utils.updateSidebarPosition();
+});
+</script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <div id="pjax">
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://book-written-on-water.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  var disqus_config = function() {
+    this.page.url = "http://xht03.github.io/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/";
+    this.page.identifier = "2024/06/21/数据库3-索引/";
+    this.page.title = "数据库笔记3：Indexing and Hashing";
+    };
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: disqus_config
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://book-written-on-water.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+    </div>
+</body>
+</html>

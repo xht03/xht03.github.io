@@ -146,7 +146,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://xht03.github.io/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%93-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/">
+    <link itemprop="mainEntityOfPage" href="http://xht03.github.io/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.gif">
@@ -160,7 +160,303 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%93-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/" class="post-title-link" itemprop="url">数据库笔记2：Concurrency Control</a>
+            <a href="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/" class="post-title-link" itemprop="url">数据库笔记3：Indexing and Hashing</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2024-06-21 21:35:40" itemprop="dateCreated datePublished" datetime="2024-06-21T21:35:40+08:00">2024-06-21</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2024-06-23 15:15:00" itemprop="dateModified" datetime="2024-06-23T15:15:00+08:00">2024-06-23</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/The-Introduction-to-Database/" itemprop="url" rel="index"><span itemprop="name">The Introduction to Database</span></a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2024/06/21/数据库3-索引/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h3 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h3><p>就像查字典有拼音索引、部首索引、笔画索引一样，为了方便查询，数据库中也有索引。主要有以下两种索引：</p>
+<ul>
+<li><strong>顺序索引（Ordered indices）</strong></li>
+<li><strong>哈希索引（Hash indices）</strong></li>
+</ul>
+<p>首先，我们介绍一些预备知识。</p>
+<p>查询记录时，我们会根据一个属性或者多个属性进行搜索。这个属性集，我们称为：<strong>搜索码（search key）</strong>。</p>
+<p>索引包含若干索引项。<strong>索引项（index entry）</strong>由一个搜索码值和指向记录的一个或多个指针构成。</p>
+<p>考虑到：数据库中更新记录，可以等价为先删除旧记录，在插入新记录。所以，我们只需要考虑插入索引和删除索引即可。</p>
+<h3 id="顺序索引"><a href="#顺序索引" class="headerlink" title="顺序索引"></a>顺序索引</h3><p>在顺序索引中，<strong>索引项是按照 search key 进行排序存储的</strong>。</p>
+<p>但是数据的存储顺序不一定与索引项的排序顺序相同。所以，根据是否与数据的排序顺序相符合，我们将索引分为两类：</p>
+<ul>
+<li><p><strong>主索引（ Clustering Index）</strong>：索引顺序与数据顺序相同。</p>
+</li>
+<li><p><strong>辅助索引（Non-clustering Index）</strong>：索引顺序与数据顺序不同。</p>
+<p><img src="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/secondary-index.png" alt="secondary index"></p>
+</li>
+</ul>
+<p>除了这种分类方式，还可以根据索引项的密度进行分类：</p>
+<ul>
+<li><p><strong>稠密索引（Dense Index）</strong>：每一个搜索码都对应地有一个索引项。</p>
+<p><img src="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/dense-index.png" alt="dense index (but not clustering)"></p>
+</li>
+<li><p><strong>稀疏索引（Sparse Index）</strong>：索引项只涵盖了部分搜索码的可能取值。</p>
+<p><img src="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/sparse-index.png" alt="sparse index"></p>
+</li>
+</ul>
+<p>请注意：<strong>辅助索引必须是稠密索引</strong>，即每个搜索码都有一个索引项。这是因为：辅助索引的顺序与数据顺序不同，如果一个搜索码没有对应的索引项，那么这个记录可能出现在数据库中的任何地方，那么索引也就失去作用了。</p>
+<p>显然，如果索引是聚集且稀疏的，查询一个记录则可以这么做：先在索引中寻找不大于当前搜索码值的最大索引，在从这个索引项指向的记录开始，依次往后搜索。</p>
+<p>所以，稀疏索引的好处时可以使用更少的空间来存储索引，但定位一个记录的时间会更慢一点。所以一个不错的权衡是：生成一个稀疏索引，<strong>为每一个块建一个索引项</strong>（generate a sparse index with an index entry for every block in file）。</p>
+<h3 id="B-树索引"><a href="#B-树索引" class="headerlink" title="B+树索引"></a>B+树索引</h3><h4 id="优缺点"><a href="#优缺点" class="headerlink" title="优缺点"></a>优缺点</h4><p>B+树索引的好处和缺点如下：</p>
+<table>
+<thead>
+<tr>
+<th align="center">优点</th>
+<th align="center">缺点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">每次插入删除会自动重组索引结构</td>
+<td align="center">每次插入删除都有额外的时间开销</td>
+</tr>
+<tr>
+<td align="center">不需要重组整个文件来维持性能</td>
+<td align="center">维持B+树的空间开销</td>
+</tr>
+</tbody></table>
+<hr>
+<h4 id="整体结构"><a href="#整体结构" class="headerlink" title="整体结构"></a>整体结构</h4><blockquote>
+<p>中间节点（internal nodes）：既不是根节点，也不是叶节点</p>
+</blockquote>
+<p>B+树是一个有根节点的树，且满足以下性质：</p>
+<ul>
+<li>所有从根节点到叶节点的路径都一样长。（平衡树）</li>
+<li>每个中间节点有 ⌈n&#x2F;2⌉ 到 n 个子节点。（n预先给定的）</li>
+<li>叶节点有 ⌈(n-1)&#x2F;2⌉ 到 n-1个值。</li>
+<li>如果根节点不是叶节点，则根节点至少有两个子节点。</li>
+<li>如果根节点是叶节点，则根节点有 0 到 (n-1) 个值。</li>
+</ul>
+<p><img src="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/B-plus.png" alt="B+ tree 1"></p>
+<p><img src="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/B-plus-example.png" alt="B+ tree 2"></p>
+<hr>
+<h4 id="节点结构"><a href="#节点结构" class="headerlink" title="节点结构"></a>节点结构</h4><p>对于非叶子节点：</p>
+<p><img src="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/node-structure.png" alt="B+ tree node structure"></p>
+<p>其中：</p>
+<ul>
+<li><p>指针个数 n 称为：<strong>扇出（fanout）</strong>。</p>
+</li>
+<li><p>**K<sub>1</sub> &lt; K<sub>2</sub> &lt; …… &lt; K<sub>n-1</sub>**（假设搜索码不会重复）</p>
+<p><img src="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/k-condition.png" alt="K-condition"></p>
+</li>
+</ul>
+<p>如果是叶子节点，则还有如下性质：</p>
+<ul>
+<li>最后一个指针 P<sub>n</sub> 指向下一个叶子节点。</li>
+<li>P<sub>i</sub> 指向的记录的搜索码取值为 K<sub>i</sub> 。</li>
+<li>如果叶节点 L<sub>i</sub> &lt; L<sub>j</sub> ，那么叶节点 L<sub>i</sub> 中所有记录的搜索码都小于等于 L<sub>j</sub> 中的。</li>
+</ul>
+<p>如果搜索码可能重复，那么 K<sub>i</sub> 序列不再是严格单增的。而是：<strong>K<sub>1</sub> &lt;&#x3D; K<sub>2</sub> &lt;&#x3D; …… &lt;&#x3D; K<sub>n-1</sub></strong></p>
+<hr>
+<h4 id="查询"><a href="#查询" class="headerlink" title="查询"></a>查询</h4><p>在 B+ 树种查找搜索码为 V 的记录，方法如下（伪代码表示）：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">set C = root node</span><br><span class="line"></span><br><span class="line">while(C is not a leaf node) &#123;</span><br><span class="line">    Let i = smallest number s.t. V &lt;= C.Ki</span><br><span class="line">    if no such i exists, then set C = C.Pm</span><br><span class="line">    	where Pm = last non-null pointer in the node</span><br><span class="line">    else if(V = C.Ki) then set C = C.Pi+1</span><br><span class="line">    else set C = C.Pi</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">Let i be the least value s.t. Ki = V</span><br><span class="line"></span><br><span class="line">if there is such a value i, return (C, i)</span><br><span class="line">else return null</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/query-example.png" alt="query example"></p>
+<hr>
+<h4 id="更新"><a href="#更新" class="headerlink" title="更新"></a>更新</h4><p>由于 B+ 树对每个节点的子节点数有限制，所以每次插入删除都可能需要：</p>
+<ul>
+<li><strong>Split</strong> a node if the node becomes too large.</li>
+<li><strong>Coalesce (合并)</strong> two or more nodes if a node becomes too  small.</li>
+</ul>
+<p>分裂和合并的规则描述起来比较复杂，我们直接看例子。</p>
+<ol>
+<li><p>插入”Adam”：</p>
+<ul>
+<li><p>先根据之前的查询的流程来定位。</p>
+</li>
+<li><p>插入“Adam”，检查是否需要分裂。若需要，则分裂。</p>
+</li>
+<li><p>子节点分裂可能导致父节点也需要分裂，所以需要一层层向上检查。</p>
+<p><img src="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/split-example1.1.png" alt="locate the node"></p>
+<p><img src="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/split-node.png" alt="split the node"></p>
+<p><img src="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/split-result.png" alt="split result"></p>
+</li>
+</ul>
+</li>
+<li><p>在1的基础上，再插入“Lamport”：</p>
+<ul>
+<li>与之前类似，不过这次插入导致上层节点也需要分裂。</li>
+</ul>
+<p><img src="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/insert-result.png" alt="insert result"></p>
+</li>
+<li><p>删除“Srinivasan”：</p>
+<ul>
+<li>删除目标节点。</li>
+<li>如果删除后子节点数不符合要求，那么与兄弟节点进行合并。</li>
+<li>合并后，父节点可能也需要合并，所以需要向上一层层检查。</li>
+</ul>
+<p><img src="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/delete-process.png" alt="delete example1"></p>
+</li>
+<li><p>再删除“Singh”和“Wu”：</p>
+<p><img src="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/delete-example2.png" alt="delete example2"></p>
+</li>
+<li><p>再删除“Gold”：</p>
+<p><img src="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/delete-example3.png" alt="delete example3"></p>
+</li>
+</ol>
+<hr>
+<h4 id="B-树索引-1"><a href="#B-树索引-1" class="headerlink" title="B 树索引"></a>B 树索引</h4><p>B 树类似于 B+ 树。B 树要求：<strong>每个搜索码的取值只能出现一次</strong>，从而消除重复储存搜索码的值。</p>
+<p><img src="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/B-tree.png" alt="B tree"></p>
+<p>B 树优点在于：</p>
+<ul>
+<li>使用了更少的节点</li>
+<li>可能更快地找到搜索码的值（因为不一定要遍历到叶节点）</li>
+</ul>
+<p>B 树缺点在于：</p>
+<ul>
+<li>只有很小一部分的搜索码的值是可以更快找到的。</li>
+<li>插入和删除操作都会更复杂</li>
+<li>实现也更加麻烦</li>
+</ul>
+<p>总的来说，B树不如B+树，缺点远胜优点。</p>
+<h3 id="哈希索引"><a href="#哈希索引" class="headerlink" title="哈希索引"></a>哈希索引</h3><p>之前的索引方式都需要建立一种索引结构，但哈希索引则可以避免：</p>
+<ul>
+<li>通过计算<strong>哈希函数（hash function）</strong>，可以由 search key 计算得到包含目标记录的块地址。</li>
+<li>A <strong>bucket</strong> is a unit of storage containing one or more records typically a disk block.</li>
+</ul>
+<hr>
+<h4 id="静态哈希"><a href="#静态哈希" class="headerlink" title="静态哈希"></a>静态哈希</h4><p>在静态哈希种，<strong>桶的数量是固定的</strong>。</p>
+<p>常见的哈希函数都是：<strong>计算搜索码的二进制表示，再模上桶的数量</strong>。</p>
+<p>例如下图中：根据dept_name，在instructor表上建立哈希索引。</p>
+<blockquote>
+<p>桶个数&#x3D;8。</p>
+<p>哈希函数是：将各字母在字母表中的序号相加，再 mod 8。</p>
+</blockquote>
+<p><img src="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/static-hash.png" alt="static hash"></p>
+<hr>
+<h4 id="溢出桶"><a href="#溢出桶" class="headerlink" title="溢出桶"></a>溢出桶</h4><p>但如果插入记录时，发现桶里已经装满了记录，这就是：<strong>桶溢出（Bucket Overflow）</strong>。一般有如下两种原因：</p>
+<ul>
+<li>桶确实不足。即使所有桶全部装满，也装不完全部记录。</li>
+<li>很多记录都装进了同一个桶，而其他很多桶还有很多空间。<strong>（Skew in distribution of records）</strong></li>
+</ul>
+<p>解决办法也很朴素：加桶（谁溢出，谁加桶）。</p>
+<p><img src="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/overflow-bucket.png" alt="overflow bucket"></p>
+<hr>
+<h4 id="动态哈希"><a href="#动态哈希" class="headerlink" title="动态哈希"></a>动态哈希</h4><p>静态哈希虽然易于实现，但缺点也明显：桶的数量是固定。</p>
+<ul>
+<li>如果设置的太小，那么需要不停的添加溢出桶，且一个 hash地址 中的记录也会非常多，导致查询效率降低。</li>
+<li>如果设置的太大，在数据规模还没起来时，大量空间被浪费了。</li>
+</ul>
+<p>所以我们希望：桶的数量能动态变化。这便是：动态哈希。</p>
+<p>这里，我们主要介绍：<strong>可扩充散列（Extendable Hashing）</strong>。</p>
+<p>可扩充散列的核心思想是：<strong>当存储的记录不多时，我们只使用 hash 值的前几位。当存在有桶溢出的情况时，我们再使用更多的 hash 值位数。</strong></p>
+<p>严格来说：</p>
+<ul>
+<li>假定 hash 函数产生的 hash 值是 b 位。</li>
+<li>设每个桶所对应的 hash 值是 i 位，（0 &lt;&#x3D; i &lt;&#x3D; b）。</li>
+<li>当一条记录经过 hash 函数计算得的 hash 值的前 i 位与桶的 hash 值相同时，这条记录存储在这个桶里。</li>
+<li>当这个桶溢出时，这个桶会分成两个桶。它们的 hash 值都是 i+1 位，且前 i 位继承原来桶的 hash 值，最后一位则分别时0、1。原来桶中的记录依据 hash 值分别装进新的两个桶中。</li>
+</ul>
+<p>具体来说，我们举例说明：</p>
+<p><img src="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/extendable-hash1.png" alt="example"></p>
+<ul>
+<li>插入“Mozart”：</li>
+</ul>
+<p><img src="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/extendable-example2.png" alt="Insert Mozart"></p>
+<ul>
+<li><p>插入“Einstein”：</p>
+<blockquote>
+<p>这时2号桶的 i<sub>2</sub> 需要加1，且 bucket address table 的前缀长度 &#x3D; max { i<sub>k</sub> | k &#x3D; 1, 2, … , b} 也会随着加1。</p>
+</blockquote>
+</li>
+</ul>
+<p><img src="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/exetendable-example3.png" alt="Insert Einstein"></p>
+<ul>
+<li>插入“Gold”：</li>
+</ul>
+<p><img src="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/extendable-example4.png" alt="Insert Gold"></p>
+<hr>
+<h4 id="一些比较"><a href="#一些比较" class="headerlink" title="一些比较"></a>一些比较</h4><p>如果是范围搜索，顺序索引更好。</p>
+<p><img src="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/range-query.png" alt="range query"></p>
+<p>如果是搜索某个具体的值，哈希索引更好。</p>
+<p><img src="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/key-query.png" alt="query based on a key"></p>
+<h3 id="位图索引"><a href="#位图索引" class="headerlink" title="位图索引"></a>位图索引</h3><p>位图索引（Bitmap Index）是一种特殊但非常高效的索引。但<strong>它一般只建立一个属性上，且该属性的可能取值很少</strong>（比如：性别、国家、省）。</p>
+<p>具体来说：</p>
+<ul>
+<li>这个属性的每一个取值都有相应的 bitmap。</li>
+<li>一个取值 V 的 bitmap 的第 i 位为1，表示第i条记录的该属性是 V。若是0，则不是 V。</li>
+</ul>
+<p><img src="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/bitmap.png" alt="bitmap"></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://xht03.github.io/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%932-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="xht03">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="延绪的水上书">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%932-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/" class="post-title-link" itemprop="url">数据库笔记2：Concurrency Control</a>
         </h2>
 
         <div class="post-meta">
@@ -198,8 +494,8 @@
       </span>
       <span class="post-meta-item-text">Disqus：</span>
     
-    <a title="disqus" href="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%93-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/#disqus_thread" itemprop="discussionUrl">
-      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2024/06/13/数据库-并行控制/" itemprop="commentCount"></span>
+    <a title="disqus" href="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%932-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2024/06/13/数据库2-并行控制/" itemprop="commentCount"></span>
     </a>
   </span>
   
@@ -229,12 +525,12 @@
 <li><strong>排他锁</strong> exclusive mode (X)：数据项可以被读或者写。</li>
 </ul>
 <p>显然，多个事务可以同时持有同一个数据的共享锁。但若有一个事务持有这个数据的排他锁，那么其他事务不能再持有该数据的共享锁。所以，不同锁之间也是存在<strong>兼容性（Lock-compatibility）</strong>的。</p>
-<p><img src="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%93-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/compatibility.png" alt="Lock-compatibility"></p>
+<p><img src="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%932-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/compatibility.png" alt="Lock-compatibility"></p>
 <p>当一个事务想访问一个数据时，它会向<strong>并发控制管理器（concurrency-control manager）</strong>发出请求。如果当前不存在与其不兼容的锁，则向该事务授权新锁；否则需要等待不兼容的锁全部被释放，才能再授权新锁。</p>
 <hr>
 <h4 id="基于锁的协议"><a href="#基于锁的协议" class="headerlink" title="基于锁的协议"></a>基于锁的协议</h4><p>但需要注意：<strong>上锁并不能保证调度是可序列化的</strong>。</p>
 <p>例如：A账户有100元，B账户有200元；T1是从B向A转账50元，T2是打印A、B账户金额总和。具体调度如下图。</p>
-<p><img src="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%93-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/example1.png" alt="example1"></p>
+<p><img src="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%932-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/example1.png" alt="example1"></p>
 <p>可以发现，这样的调度就不满足事务的一致性。原因在于：</p>
 <ul>
 <li>T1 过早的释放了数据B的锁。这导致 T2 误以为自己已经获得了所有需要的数据，就开始执行。但 T2 读取的A并不是 T1 更新后的值。</li>
@@ -246,7 +542,7 @@
 </blockquote>
 <hr>
 <h4 id="死锁"><a href="#死锁" class="headerlink" title="死锁"></a>死锁</h4><p>当我们使用锁时，可能出现以下这种情况：</p>
-<p><img src="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%93-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/deadlock.png" alt="deadlock"></p>
+<p><img src="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%932-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/deadlock.png" alt="deadlock"></p>
 <p>T3 和 T4 都需要数据 A、B。但 T3 持有B并给B上锁；T4 持有A并给A上锁。此时，T3 和 T4 都有彼此想要的数据项，但又都不愿意释放出自己手中的数据。于是调度就僵持在这里，无法进行。这种情况，我们称之为：<strong>死锁（deadlock）</strong>。</p>
 <hr>
 <p>就像《剪刀手爱德华》里说的：“如果我没有刀，我无法保护你；如果我拿着刀，我无法拥抱你。”如果不采用锁，无法保证事务的一致性；但如果采用锁，又会产生死锁的情况。</p>
@@ -315,10 +611,10 @@
 <li><strong>shrinking phase</strong>：事务只能释放锁。</li>
 </ul>
 <p>例如下图中：T1 和 T2 就不是二相锁，T3 和 T4 就是二相锁。（且将<code>unlock(B)</code>提前到<code>lock-X(A)</code>后面执行，也仍是遵守协议的）</p>
-<p><img src="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%93-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/example2.png" alt="example2"></p>
+<p><img src="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%932-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/example2.png" alt="example2"></p>
 <p>对于任何事务，它获得它的最后一个锁的时候，也就是增长阶段结束的时候，我们称之为：事务的<strong>封锁点（lock point）</strong>。</p>
 <p>二相锁是可序列化的，且：<strong>各个事务实际上就是按照 lock point 的先后进行顺序执行完成的。</strong></p>
-<p><img src="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%93-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/two-phase.png" alt="two phase lock"></p>
+<p><img src="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%932-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/two-phase.png" alt="two phase lock"></p>
 <p>但二相锁并不是完美的：</p>
 <ul>
 <li>二相锁<strong>不能避免死锁</strong>的问题。</li>
@@ -333,7 +629,7 @@
 <hr>
 <h4 id="锁的转换"><a href="#锁的转换" class="headerlink" title="锁的转换"></a>锁的转换</h4><p>共享锁和排他锁时可以相互转换的，通过<strong>升级（upgrading）</strong>和<strong>降级（downgrading）</strong>。</p>
 <p>例如：当事务T已经拥有S锁，且又需要X锁时：它可以将S锁升级成X锁。</p>
-<p><img src="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%93-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/conversion.png" alt="conversion"></p>
+<p><img src="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%932-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/conversion.png" alt="conversion"></p>
 <p>但锁的升级和降级不是能乱来的：</p>
 <ul>
 <li>升级只能发生在 growing phase</li>
@@ -353,11 +649,11 @@
 <li>例如：T2 申请 “数据123” 上的排他锁，此时 T1 和 T8 已持有其共享锁。那么 T2 的申请会被添加到 “数据123” 的链表的末尾。</li>
 <li>如果一个事务终止（aborted），锁管理器会释放该事务持有的所有锁。</li>
 </ul>
-<p><img src="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%93-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/lock-table.png" alt="lock table"></p>
+<p><img src="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%932-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/lock-table.png" alt="lock table"></p>
 <hr>
 <h3 id="多粒度"><a href="#多粒度" class="headerlink" title="多粒度"></a>多粒度</h3><p>截至目前，我们讨论的并发控制都是以一个个数据为单位，但实际情况中，一个事务可能请求访问整个数据库的内容，这时一个个数据的上锁会非常耽误时间，我们希望能直接一次请求就能锁住整个数据库。所以，我们需要根据各种数据项大小，定义数据粒度的层次。</p>
 <p><strong>多粒度机制（Multiple granularity mechanism）</strong>允许数据项具有不同的大小，并定义一个数据粒度的层次结构，其中较小的粒度嵌套在较大的粒度之内。这样的层次结构可以用树状图形来表示。树中的每个节点都可以单独加锁。当一个事务显式地锁定树中的一个节点时，它隐式地以相同的模式锁定该节点的所有子孙节点。</p>
-<p><img src="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%93-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/tree.png" alt="granularity"></p>
+<p><img src="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%932-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/tree.png" alt="granularity"></p>
 <p>但是，每一次加锁，都需要判定当前节点是否能加锁。例如：事务 T1 想给 A1 加共享锁，但是系统必须检查 A1 的所有子节点中是否有排他锁。若有，则不能加锁。但如果每次加锁都需要搜索整个树，就违背了多粒度机制的初衷——快速地给大量数据加锁。</p>
 <p>所以我们引入了一种新的锁的模式：<strong>意向锁（intention lock mode）</strong>。</p>
 <hr>
@@ -372,7 +668,7 @@
 <li><strong>IX（排他意向锁）</strong>：表明将要在更低层次加排他锁。</li>
 <li><strong>SIX（共享排他意向锁）</strong>：表明在更高层次加了共享锁，并且将要在更低层次加独占锁。（SIX &#x3D; S + IX）</li>
 </ul>
-<p><img src="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%93-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/intention-lock.png" alt="intention lock"></p>
+<p><img src="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%932-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/intention-lock.png" alt="intention lock"></p>
 <p>核心想法就是：增加 IS、IX、SIX 模式，来反映子节点的上锁情况。这样给当前节点上锁时，就不必搜索当前节点的子树，检查当前节点的锁就能知道其子节点的上锁情况。当我们给一个节点上意向锁时，我们只需要更新当前节点和其父节点的锁即可，不需要更改其子节点的锁。</p>
 <p>事务 T<sub>i</sub> 可以使用以下规则锁定节点 Q：</p>
 <ul>
@@ -387,13 +683,13 @@
 <p>举例说明一下，假设依次发生以下请求：</p>
 <ul>
 <li><p>事务 T<sub>1</sub> 读取记录 r<sub>a<sub>1</sub></sub> 。</p>
-<p><img src="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%93-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/example3.1.png" alt="example3.1"></p>
+<p><img src="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%932-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/example3.1.png" alt="example3.1"></p>
 </li>
 <li><p>事务 T<sub>2</sub> 更新记录 r<sub>a<sub>2</sub></sub> 。</p>
-<p><img src="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%93-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/example3.2.png" alt="example3.2"></p>
+<p><img src="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%932-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/example3.2.png" alt="example3.2"></p>
 </li>
 <li><p>事务 T<sub>3</sub> 读取文件 F<sub>a</sub> 。（但此时 S<sub>T<sub>3 </sub></sub> 锁和 IX<sub>T<sub>2</sub></sub> 锁相矛盾了，所以 T<sub>3</sub> 会进行等待）</p>
-<p><img src="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%93-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/example3.3.png" alt="example3.3"></p>
+<p><img src="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%932-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/example3.3.png" alt="example3.3"></p>
 </li>
 </ul>
 <h3 id="时间戳"><a href="#时间戳" class="headerlink" title="时间戳"></a>时间戳</h3><p>之前基于锁的各种协议，最终可序列化的顺序都是由上锁的时刻决定。现在我们介绍第二种实现并行控制的方法：<strong>基于时间戳的协议（Timestamp-Based Protocols）</strong>。这种方法的事务可序列化顺序是预先决定的。</p>
@@ -442,7 +738,7 @@
 </ul>
 <p>请注意：如果一个事务被回滚了，系统会重新给它分配一个时间戳，并重启它。</p>
 <p>时间戳协议保证了所有事务按照时间戳的顺序执行完成。所以，<strong>在时间戳协议里，不会出现死锁</strong>。但是仍然可能出现饿死的情况：一系列短事务可能会不断的被重启，因为一些长事务一直在执行。</p>
-<p><img src="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%93-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/time-stamp.png" alt="timestamp serializability"></p>
+<p><img src="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%932-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/time-stamp.png" alt="timestamp serializability"></p>
 <hr>
 <p>时间戳协议虽然避免了死锁的问题，但它<strong>不能避免级联</strong>，而且很可能<strong>不是可恢复的</strong>。</p>
 <p>举例说明一下。假设事务 T<sub>i</sub> 中止（abort），但是事务 T<sub>j</sub> 已经读取了由 T<sub>i</sub> 写入的数据项：</p>
@@ -461,7 +757,7 @@
 <hr>
 <h4 id="Thomas-写规则"><a href="#Thomas-写规则" class="headerlink" title="Thomas 写规则"></a>Thomas 写规则</h4><p>在时间戳协议的基础上，我们可以进一步增强数据库系统的并行能力。</p>
 <p>考虑下图中的例子：事务 T<sub>27 </sub> 因为 <code>write(Q)</code> 操作被迫回滚。但实际上，按照“事务 T<sub>27 </sub> 先执行，事务 T<sub>28</sub> 后执行”的顺序，事务 T<sub>27</sub> 的 <code>write(Q)</code> 操作实际上会被事务 T<sub>28</sub> 的 <code>write(Q)</code> 操作覆盖掉。也就是说：事务 T<sub>27</sub> 的 <code>write(Q)</code> 操作根本没必要执行，事务 T<sub>27</sub> 也不必回滚。</p>
-<p><img src="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%93-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/example4.png" alt="example4"></p>
+<p><img src="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%932-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/example4.png" alt="example4"></p>
 <p><strong>对于过时的写操作，我们进行忽略</strong>。于是有了 <strong>Thomas’ Write Rule</strong>。</p>
 <p>假设事务 T<sub>i</sub> 发出写操作 write(Q)。</p>
 <ol>
@@ -481,7 +777,7 @@
 <li><strong>对于每个数据项 Q</strong>，在调度 S 中执行最终的 write(Q) 操作的事务（如果有的话），在调度 S’ 中也必须执行最终的 write(Q) 操作。<strong>（确保执行相同的最终写操作）</strong></li>
 </ul>
 <p>如果它与某个串行调度视图等价，调度 S 是<strong>视图可串行化（View Serializable）</strong>的。</p>
-<p><img src="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%93-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/view-serializability.png" alt="View Serializability"></p>
+<p><img src="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%932-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/view-serializability.png" alt="View Serializability"></p>
 
       
     </div>
@@ -744,7 +1040,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://xht03.github.io/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%93-%E4%BA%8B%E5%8A%A1/">
+    <link itemprop="mainEntityOfPage" href="http://xht03.github.io/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.gif">
@@ -758,7 +1054,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%93-%E4%BA%8B%E5%8A%A1/" class="post-title-link" itemprop="url">数据库笔记1：Transaction</a>
+            <a href="/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/" class="post-title-link" itemprop="url">数据库笔记1：Transaction</a>
         </h2>
 
         <div class="post-meta">
@@ -796,8 +1092,8 @@
       </span>
       <span class="post-meta-item-text">Disqus：</span>
     
-    <a title="disqus" href="/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%93-%E4%BA%8B%E5%8A%A1/#disqus_thread" itemprop="discussionUrl">
-      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2024/06/06/数据库-事务/" itemprop="commentCount"></span>
+    <a title="disqus" href="/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2024/06/06/数据库1-事务/" itemprop="commentCount"></span>
     </a>
   </span>
   
@@ -828,7 +1124,7 @@
 </ul>
 <p>通俗地讲，一致性是指，在仅当前事务执行时（没有事务并发执行），<strong>数据库中的某些不变量要保持一致</strong>。比如银行转账时两个账户的余额之和要保持不变。（英文释义：If a transaction is run atomically in isolation starting  from a consistent database, the database must again be  consistent at the end of the transaction. ）</p>
 <p>但是，像银行转账，先从A账户扣钱，再向B账户里转钱，必然有处于不一致状态的时候。执行一个事务时也是如此。我们必须保证：<strong>不一致状态是不可见的</strong>。这也是为什么要保证原子性——要么全做完，要么回退到全部没做，不能位于中间不一致状态。</p>
-<p><img src="/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%93-%E4%BA%8B%E5%8A%A1/consistent.png" alt="consistency"></p>
+<p><img src="/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/consistent.png" alt="consistency"></p>
 <p>原子性一般这样实现：数据库会记录一个事务对任何数据进行写操作前的旧值。 这些信息被写入一个称为<strong>日志（log）</strong>的文件中。如果事务没有完成其执行，数据库系统会从日志中恢复旧值，使其看起来像事务从未执行过一样。而且日志记录需要发生在事务开始修改数据库之前（log records need to be written to stable storage before any  changes are made to the database on disk.）</p>
 <p>诚然，事务序列运行（serially）是更容易实现的，但多个事务的并发运行能显著地提升性能，就像“一个人干活 Vs 一群人同时干活”：</p>
 <ul>
@@ -850,7 +1146,7 @@
 <li>Aborted：在事务被回滚（roll back）且数据库恢复到事务开始之前的状态后，事务进入中止状态。</li>
 <li>Committed：在当前事务成功完成执行后，事务进入该状态。</li>
 </ul>
-<p><img src="/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%93-%E4%BA%8B%E5%8A%A1/state.png" alt="states"></p>
+<p><img src="/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/state.png" alt="states"></p>
 <p>特别地，我们需要小心：可观察的外部写操作（比如写入用户的屏幕，一旦发生，就不能撤销）。大多数系统允许这种写操作仅在事务进入Committed状态后才进行。</p>
 <h3 id="调度"><a href="#调度" class="headerlink" title="调度"></a>调度</h3><p><strong>调度（Schedule）</strong>是指一系列指令，并指定并发事务的指令在系统中执行的时间顺序。</p>
 <p>且一个调度要满足：</p>
@@ -861,14 +1157,14 @@
 <li>未成功完成执行的事务，其最后一个语句将是abort指令。</li>
 </ul>
 <p>举一个例子：T1事务是从A转账50元到B，T2事务是A转账10%到B。下图的调度1是一个<strong>序列化的（serial）</strong>调度。</p>
-<p><img src="/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%93-%E4%BA%8B%E5%8A%A1/schedule1.png" alt="schedule1"></p>
+<p><img src="/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/schedule1.png" alt="schedule1"></p>
 <hr>
 <h4 id="可序列化"><a href="#可序列化" class="headerlink" title="可序列化"></a>可序列化</h4><blockquote>
 <p>等价（equivalent）有很多种，因此对应的可序列化（Serializable）也有多种。这里我们指的都是冲突等价和冲突可序列化。</p>
 </blockquote>
 <p>如果一个调度是等价于一个序列调度，则称为<strong>可序列化的（serializable）</strong>。所谓等价，通俗地讲，则是两个调度的最终结果相同。之后我们会给出严格定义。</p>
 <p>下图中，调度3与调度1等价，是可序列化的调度。</p>
-<p><img src="/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%93-%E4%BA%8B%E5%8A%A1/schedule3.png" alt="schedule3"></p>
+<p><img src="/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/schedule3.png" alt="schedule3"></p>
 <p>我们只关心read和write两类操作，特别是它们执行的先后顺序，忽略其他类型的操作。大多数时候出问题都是因为：最新值还未写入数据库，而另一事务已经提前读取或写入了数据。但需要指出的是：可能存在两个调度，它们产生相同的结果，但它们不是冲突等价的（相当于是“充分条件，但不必要”）。</p>
 <p>我们考虑调度 S 中的两个连续的指令 I 、 J 。</p>
 <p>如果 I 、 J 分别作用于不同的数据，那么它们的先后顺序不影响数据结果，怎么样都可以，不冲突。</p>
@@ -892,12 +1188,12 @@
 </blockquote>
 <p>到目前为止，我们都在假定事务不会失败的情况下讨论，但实际情况是事务失败总会发生。为了保证原子性，我们就必须撤销该事务的所有操作。但如果T<sub>i</sub> 失败了，且 T<sub>j</sub> 依赖于 T<sub>i</sub> ，那么我们需要也将 T<sub>j</sub> 撤销。 </p>
 <p>例如下图中，调度9中的T<sub>7</sub>使用了T<sub>6</sub>写入的A值，如果T<sub>6</sub>结果出问题，则T<sub>7</sub>结果也有问题。所以，T<sub>7</sub>依赖于T<sub>6 </sub> 。</p>
-<p><img src="/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%93-%E4%BA%8B%E5%8A%A1/schedule9.png" alt="schedule9"></p>
+<p><img src="/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/schedule9.png" alt="schedule9"></p>
 <p><strong>可恢复调度（recoverable schedule）</strong>应当满足：</p>
 <ul>
 <li>如果一个事务 T<sub>j</sub> 读取了之前由事务 T<sub>i</sub> 写入的数据项，那么事务 T<sub>i</sub> 将在事务 T<sub>j</sub> 提交之前提交。</li>
 </ul>
-<p><img src="/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%93-%E4%BA%8B%E5%8A%A1/recoverable.png" alt="recoverable"></p>
+<p><img src="/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/recoverable.png" alt="recoverable"></p>
 <p>可恢复性确保了：如果一个事务要用其他事务的数据项，则一定用的是最终数据，而不是过程中的数据。这样避免了一个数据出错导致一系列数据出错（级联效应）。</p>
 <hr>
 <h4 id="无级联的"><a href="#无级联的" class="headerlink" title="无级联的"></a>无级联的</h4><p>像上面所所的，一个事务的失败可能触发一系列事务的回滚。这种情况称为<strong>级联回滚（cascading rollback）</strong>。这样的情况会大大降低数据库的性能。</p>
@@ -905,7 +1201,7 @@
 <ul>
 <li>任意一对事务 T<sub>i</sub> 和 T<sub>j</sub> ，如果一个事务 T<sub>j</sub> 读取了之前由事务 T<sub>i</sub> 写入的数据项，那么事务 T<sub>i</sub> 将在事务 T<sub>j</sub> 提交之前提交。</li>
 </ul>
-<p><img src="/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%93-%E4%BA%8B%E5%8A%A1/cascadeless.png" alt="cascadeless"></p>
+<p><img src="/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/cascadeless.png" alt="cascadeless"></p>
 <p>不难发现，无级联则可恢复。</p>
 
       
@@ -2266,155 +2562,11 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://xht03.github.io/2024/01/30/Shadowsocks/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="xht03">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="延绪的水上书">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/01/30/Shadowsocks/" class="post-title-link" itemprop="url">基于Shadowsocks的节点搭建</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2024-01-30 13:00:48" itemprop="dateCreated datePublished" datetime="2024-01-30T13:00:48+08:00">2024-01-30</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2024-02-07 14:45:10" itemprop="dateModified" datetime="2024-02-07T14:45:10+08:00">2024-02-07</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Computer-Network/" itemprop="url" rel="index"><span itemprop="name">Computer Network</span></a>
-                </span>
-            </span>
-
-          
-  
-  <span class="post-meta-item">
-    
-      <span class="post-meta-item-icon">
-        <i class="far fa-comment"></i>
-      </span>
-      <span class="post-meta-item-text">Disqus：</span>
-    
-    <a title="disqus" href="/2024/01/30/Shadowsocks/#disqus_thread" itemprop="discussionUrl">
-      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2024/01/30/Shadowsocks/" itemprop="commentCount"></span>
-    </a>
-  </span>
-  
-  
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h2 id="购买并连接vps服务器"><a href="#购买并连接vps服务器" class="headerlink" title="购买并连接vps服务器"></a>购买并连接vps服务器</h2><p>常见服务器卖家有腾讯、阿里、亚马逊，但是这些VPS比较贵。这里我们在<a target="_blank" rel="noopener" href="https://www.vultr.com/"><em>Vultr</em></a>上购买<em>Ubuntu</em>服务器。我们用ssh工具<a target="_blank" rel="noopener" href="https://www.hostbuf.com/"><em>FinalShell</em></a>连接我们购买的VPS。</p>
-<p><img src="/2024/01/30/Shadowsocks/finalshell.png" alt="finalshell"></p>
-<h2 id="Shadowsocks原理"><a href="#Shadowsocks原理" class="headerlink" title="Shadowsocks原理"></a>Shadowsocks原理</h2><p>Shadowsocks（简称SS）是一种用于科学上网的代理工具，旨在绕过网络审查和限制。它采用 SOCKS5 协议，并使用加密算法来保护数据传输的隐私性。Shadowsocks 的工作原理是通过在本地计算机和远程服务器之间建立一个加密的隧道，将用户的网络流量通过该隧道传输。这样，用户可以访问被封锁的内容或服务，同时保护了通信的隐私性。</p>
-<p><img src="/2024/01/30/Shadowsocks/shadowsocks.png" alt="Shadowsocks原理"></p>
-<h2 id="在Ubuntu服务器上安装Shadowsocks"><a href="#在Ubuntu服务器上安装Shadowsocks" class="headerlink" title="在Ubuntu服务器上安装Shadowsocks"></a>在Ubuntu服务器上安装Shadowsocks</h2><ol>
-<li><p>命令行安装Shadowsocks：<code>apt install shadowsocks-libev</code></p>
-</li>
-<li><p>查看Shadowsocks状态：<code>systemctl status shadowsocks-libev.service</code></p>
-<p><img src="/2024/01/30/Shadowsocks/status.png" alt="Shadowsocks状态"></p>
-<ul>
-<li><em>这里：enabled表明开机自启，active表示已经启动，目前正在监听8388端口</em></li>
-</ul>
-</li>
-<li><p>编辑配置文件：<code>vim /etc/shadowsocks-libev/config.json</code></p>
-<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line">    <span class="attr">&quot;server&quot;</span><span class="punctuation">:</span><span class="punctuation">[</span> <span class="string">&quot;0.0.0.0&quot;</span><span class="punctuation">]</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;mode&quot;</span><span class="punctuation">:</span><span class="string">&quot;tcp_and_udp&quot;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;server_port&quot;</span><span class="punctuation">:</span><span class="number">8388</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;local_port&quot;</span><span class="punctuation">:</span><span class="number">1080</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;password&quot;</span><span class="punctuation">:</span><span class="string">&quot;your password&quot;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;timeout&quot;</span><span class="punctuation">:</span><span class="number">86400</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;method&quot;</span><span class="punctuation">:</span><span class="string">&quot;chacha20-ietf-poly1305&quot;</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
-
-<ul>
-<li><p><em>这里我是用 vim 编辑配置文件。如果你对 vim 不熟悉，也可以直接在 FinalShell 底部的图形界	面找到 config.json 文件，双击打开，进行编辑。操作上与在 Windows 操作系统上一致。</em></p>
-</li>
-<li><p><em>这里把ip地址改成 0.0.0.0 ，意思是允许所有 ip 地址想 8388 端口发送数据，默认是只允许本机的程序向它发送数据。127.0.0.1是本地的环回地址。</em></p>
-</li>
-<li><p><em>这里的加密方式也是 AEAD ，目前最安全的加密方式。</em></p>
-</li>
-</ul>
-</li>
-<li><p>重启Shadowsocks：<code>systemctl restart shadowsocks-libev.service</code></p>
-</li>
-<li><p>再查看Shadowsocks状态：<code>systemctl status shadowsocks-libev.service</code></p>
-<p><img src="/2024/01/30/Shadowsocks/8388.png" alt="Shadowsocks新状态"></p>
-<ul>
-<li><em>这里已经是在监听 0.0.0.0 的 8388 端口，就可以进行连接了</em></li>
-</ul>
-</li>
-<li><p>编辑 Clash 的 .yaml 配置文件，然后在 Clash 里尝试连接：</p>
-<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">port:</span> <span class="number">7890</span></span><br><span class="line"><span class="attr">socks-port:</span> <span class="number">7891</span></span><br><span class="line"><span class="attr">redir-port:</span> <span class="number">7892</span></span><br><span class="line"><span class="attr">allow-lan:</span> <span class="literal">false</span></span><br><span class="line"><span class="attr">mode:</span> <span class="string">Rule</span></span><br><span class="line"><span class="attr">log-level:</span> <span class="string">info</span></span><br><span class="line"><span class="attr">external-controller:</span> <span class="string">&#x27;127.0.0.1:9090&#x27;</span></span><br><span class="line"><span class="attr">secret:</span> <span class="string">&#x27;&#x27;</span></span><br><span class="line"><span class="attr">proxies:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">&quot;My Server&quot;</span></span><br><span class="line">    <span class="attr">type:</span> <span class="string">ss</span></span><br><span class="line">    <span class="attr">server:</span> <span class="string">your</span> <span class="string">vps</span> <span class="string">ip</span></span><br><span class="line">    <span class="attr">port:</span> <span class="number">8388</span></span><br><span class="line">    <span class="attr">cipher:</span> <span class="string">chacha20-ietf-poly1305</span></span><br><span class="line">    <span class="attr">password:</span> <span class="string">&quot;your password&quot;</span></span><br><span class="line"><span class="attr">proxy-groups:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">Proxy</span></span><br><span class="line">    <span class="attr">type:</span> <span class="string">select</span></span><br><span class="line">    <span class="attr">proxies:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">&quot;My Server&quot;</span></span><br><span class="line"><span class="attr">rules:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">DOMAIN-SUFFIX,google.com,Proxy</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">MATCH,DIRECT</span></span><br></pre></td></tr></table></figure>
-
-<ul>
-<li><em>此时会连接超时 Timeout 。这是因为 Ubuntu 服务器上的防火墙 ufw 还没有关</em></li>
-</ul>
-</li>
-<li><p>查看ufw状态：<code>ufw status</code></p>
-<p><img src="/2024/01/30/Shadowsocks/ufw.png" alt="ufw"></p>
-<ul>
-<li><em>ufw 默认只开放 22 号端口</em></li>
-</ul>
-</li>
-<li><p>开放8388端口：<code>ufw allow 8388</code></p>
-<ul>
-<li><em>我们可以直接关掉 ufw 防火墙。但这样直接暴露在公网下很危险，所以我们选择新开一个端口 8388 。</em></li>
-</ul>
-</li>
-<li><p>使用Clash连接：</p>
-<p><img src="/2024/01/30/Shadowsocks/Clash.png" alt="Clash"></p>
-</li>
-<li><p>查看Ubuntu服务器日志：<code>journalctl -u shadowsocks-libev.service -f</code></p>
-<ul>
-<li><em>到第九步为止，我们已经搭建完最简陋的 VPN 了。这条指令可以帮助你发现搭建过程中的错误。</em></li>
-</ul>
-</li>
-</ol>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
+  <nav class="pagination">
+    <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><a class="extend next" rel="next" href="/page/2/"><i class="fa fa-angle-right" aria-label="下一页"></i></a>
+  </nav>
 
 
 
@@ -2479,7 +2631,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">10</span>
+          <span class="site-state-item-count">11</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
