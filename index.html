@@ -146,7 +146,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://xht03.github.io/2024/08/20/%E6%91%98%E6%8A%84/">
+    <link itemprop="mainEntityOfPage" href="http://xht03.github.io/2024/09/05/%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.gif">
@@ -160,7 +160,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2024/08/20/%E6%91%98%E6%8A%84/" class="post-title-link" itemprop="url">鸡汤煲</a>
+            <a href="/2024/09/05/%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92/" class="post-title-link" itemprop="url">动态规划</a>
         </h2>
 
         <div class="post-meta">
@@ -171,7 +171,7 @@
               <span class="post-meta-item-text">发表于</span>
               
 
-              <time title="创建时间：2024-08-20 09:53:10 / 修改时间：11:56:08" itemprop="dateCreated datePublished" datetime="2024-08-20T09:53:10+08:00">2024-08-20</time>
+              <time title="创建时间：2024-09-05 15:48:21 / 修改时间：21:26:04" itemprop="dateCreated datePublished" datetime="2024-09-05T15:48:21+08:00">2024-09-05</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -179,7 +179,7 @@
               </span>
               <span class="post-meta-item-text">分类于</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Literature/" itemprop="url" rel="index"><span itemprop="name">Literature</span></a>
+                  <a href="/categories/The-Introduction-to-Algorithm/" itemprop="url" rel="index"><span itemprop="name">The Introduction to Algorithm</span></a>
                 </span>
             </span>
 
@@ -192,8 +192,8 @@
       </span>
       <span class="post-meta-item-text">Disqus：</span>
     
-    <a title="disqus" href="/2024/08/20/%E6%91%98%E6%8A%84/#disqus_thread" itemprop="discussionUrl">
-      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2024/08/20/摘抄/" itemprop="commentCount"></span>
+    <a title="disqus" href="/2024/09/05/%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2024/09/05/动态规划/" itemprop="commentCount"></span>
     </a>
   </span>
   
@@ -208,103 +208,357 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <h4 id="时间"><a href="#时间" class="headerlink" title="时间"></a>时间</h4><ul>
-<li>时间是公平的，他不会给任何人多一分，也不会给任何人少一秒；但时间也是有偏向的，惜时如金者往往得到时间的奖励，虚掷光阴者往往徒留怅然。</li>
-<li>壮士惜年，贤人惜日，圣人惜时。</li>
-<li>我们如何使用时间可能取决于我们觉得自己还有多少时间。— <em>阿图·葛文德</em></li>
-<li>人们常说，让时间解决一切，而我们常常忘记询问的是，是否还有足够的时间。— <em>若泽</em></li>
-<li>过去的，让它过去，永远不要回顾；未来的，等来了时再说，不要空想；我们只抓住了现在。— <em>茅盾</em></li>
-<li>念念不忘，必有回响。过去的歌已唱罢多年，回声才从山谷尽头遥遥传来。— <em>王家卫</em></li>
-<li>把今天过到最好，而不是为了未来牺牲现在。— <em>《最好的告别》</em></li>
-<li>零碎的时间最可贵，但也最容易丢弃。— <em>梁实秋</em></li>
-<li>我不向时间争分夺秒，不让我的人生成为争分夺秒的战场，这反而使我的每一个当下都完好无损。— <em>周国平</em></li>
-<li>在满园弥漫的沉静光芒中，一个人更容易看到时间，并看到自己的身影。— <em>史铁生</em></li>
-<li>时光凿去狂妄，磨出温润。— <em>刘瑜</em></li>
-<li>岁月不居，时节如流。— <em>孔融</em></li>
+          <h3 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h3><p><strong>动态规划（dynamic programming）</strong>与分治方法相似，都是通过组合子问题的解来求解原问题（子问题的求解是递归进行的，将其划分为更小的子子问题）。</p>
+<ul>
+<li>分治方法将问题划分为互不相交的子问题，递归地求解子问题，再将它们的解组合起来，求出原问题的解。</li>
+<li>与之相反，动态规划应用于子问题重叠的情况，即不同的子问题具有公共的子子问题。在这种情况下，分治算法会做许多不必要的工作，它会反复地求解那些公共子子问题。而动态规划算法对每个子子问题只求解一次，将其解保存在一个表格中，从而无需每次求解一个子子问题时都重新计算，避免了这种不必要的计算工作。</li>
+</ul>
+<p>所以形象地说：<strong>动态规划是有记忆的分治</strong>。</p>
+<hr>
+<p>动态规划方法通常用来求解<strong>最优化问题(optimization problem)</strong> 。这类问题可以有很多可行解，每个解都有一个值，我们希望寻找具有最优值（最小值或最大值）的解。可能有多个解都达到最优值。</p>
+<p>具体来说，动态规划问题一般具有一下两个性质：</p>
+<ul>
+<li><strong>最优子结构</strong>：一个问题的最优解包含其子问题的最优解。</li>
+<li><strong>重叠子问题</strong>：问题空间必须足够“小”，即问题的递归算法会反复地求解相同的子间题，而不是一直生成新的子问题。</li>
 </ul>
 <hr>
-<h4 id="奋斗"><a href="#奋斗" class="headerlink" title="奋斗"></a>奋斗</h4><ul>
-<li>日日行不怕千万里，天天讲不吝千万言，时时做不惧千万事。</li>
-<li>最慢的步伐不是跬步，而是徘徊；最快的脚步不是冲刺，而是坚持。</li>
-<li>新的长征路上，有风有雨是常态，风雨无阻是心态，风雨兼程是状态。</li>
-<li>志不求易者成，事不避难者进。</li>
-<li>自信挥戈能退日，山河依旧战旗红。— <em>朱德</em></li>
-<li>自信人生二百年，会当击水三千里。— <em>毛泽东</em></li>
-<li>喷泉的高度超不过它的源头，一个人的成就超不过他的理想。— <em>林肯</em></li>
-<li>每一个不曾起舞的日子，都是对生命的辜负。— <em>尼采</em></li>
-<li>当泪的潮涌渐渐退远，理想的岛屿就会浮现。— <em>顾城</em></li>
-<li>力，形之所以奋也。—《墨经》</li>
-<li>不是因为有希望才坚持，而是坚持了才有希望。</li>
-<li>凿井者，起于三寸之坎，以就万仞之深。 — <em>刘昼</em></li>
-<li>纵有千古，横有八荒，前途似海，来日方长。— <em>梁启超</em></li>
-<li>莫道岁月晚，奋起正当时。</li>
-<li>没有不可治愈的伤痛，没有不能结束的沉沦，所有失去的，会以另一种方式归来。— <em>约翰·肖尔斯</em></li>
-<li>欢乐是人生的驿站，痛苦是生命的航程。— <em>汪国真</em></li>
-<li>逆水行舟，进或有三秦之望，退岂存一锥之地？— <em>《南麓书院记》</em></li>
-<li>不懈于日日夜夜的寸积铢累，不滞于夙兴夜寐的久久为功。</li>
-<li>艰难方显勇毅，磨砺始得玉成。</li>
-<li>一星陨落，黯淡不了星空灿烂；一花凋零，荒芜不了整个春天。— <em>巴尔扎克</em></li>
-<li>留得子胥豪气在，三年归报楚王仇。— <em>杨超</em></li>
-<li>成功不必在我，功力必不唐捐。— <em>胡适</em></li>
-<li>抱怨身处黑暗，不如提灯前行。— <em>刘同</em></li>
-<li>没有一件事是白费力气，没有一件事是毫无意义。— <em>小川系</em></li>
-<li>人的命就像这琴弦，拉紧了才能弹好，弹好了就够了。— <em>史铁生</em></li>
-<li>看似寻常最崎岖，成如容易却艰辛。</li>
-<li>天生烝民，其命匪谌。靡不有初，鲜有克终。— <em>《诗经》</em></li>
-<li>着力即差。— <em>苏轼</em></li>
-<li>夫以五千之卒，敌十万之军，策罢乏之兵，当新羁之马，如此而欲图存，非奋斗不可。</li>
+<p>我们通常按如下 4 个步骤来设计一个动态规划算法：</p>
+<ol>
+<li><strong>刻画</strong>最优解的<strong>结构</strong>。</li>
+<li>给出最优解的值的<strong>递推公式</strong>。</li>
+<li><strong>自底向上</strong>地计算最优解的值。</li>
+<li>利用计算出的信息<strong>构造</strong>一个最优解。</li>
+</ol>
+<p>步骤 1~3 是动态规划算法求解问题的基础。</p>
+<ul>
+<li>如果我们仅仅需要一个最优解的值，而非解本身，可以忽略步骤 4 。</li>
+<li>如果需要一个最优解, 有时就需要在执行步骤 3 的过程中维护一些额外信息，以便用来构造一个最优解。</li>
 </ul>
+<p>所以形象地说：<strong>动态规划就是一种“数学归纳法”</strong>。</p>
 <hr>
-<h4 id="读书"><a href="#读书" class="headerlink" title="读书"></a>读书</h4><ul>
-<li>粗缯大布裹身涯，腹有诗书气自华。— <em>苏轼</em></li>
+<h3 id="实例"><a href="#实例" class="headerlink" title="实例"></a>实例</h3><h4 id="斐波那契数列"><a href="#斐波那契数列" class="headerlink" title="斐波那契数列"></a>斐波那契数列</h4><p>如果使用一般的分治算法（递归），会有大量的重复计算。以下图为例，计算 F<sub>6</sub> 的递归过程中 F<sub>3</sub> &#x3D; F<sub>2</sub> + F<sub>1</sub> 被重复进行了 3 次。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">fibonacci</span>(<span class="params">n</span>):</span><br><span class="line">    <span class="keyword">if</span> n &lt;= <span class="number">0</span>:</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span></span><br><span class="line">    <span class="keyword">elif</span> n == <span class="number">1</span>:</span><br><span class="line">        <span class="keyword">return</span> <span class="number">1</span></span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        <span class="keyword">return</span> fibonacci(n-<span class="number">1</span>) + fibonacci(n-<span class="number">2</span>)</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/09/05/%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92/F6.png" alt="F6的递归过程"></p>
+<p>动态规划算法为了避免重复的子问题计算，把每次计算过的子问题的解都记录下来，以后在遇到相同子问题时，直接“背答案”。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">fibonacci_dp</span>(<span class="params">n</span>):</span><br><span class="line">    <span class="keyword">if</span> n &lt;= <span class="number">0</span>:</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span></span><br><span class="line">    dp = [<span class="number">0</span>] * (n + <span class="number">1</span>)</span><br><span class="line">    dp[<span class="number">1</span>] = <span class="number">1</span></span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">2</span>, n + <span class="number">1</span>):</span><br><span class="line">        dp[i] = dp[i-<span class="number">1</span>] + dp[i-<span class="number">2</span>]</span><br><span class="line">    <span class="keyword">return</span> dp[n]</span><br><span class="line"></span><br><span class="line"><span class="comment"># Example usage:</span></span><br><span class="line">n = <span class="number">10</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">f&quot;Fibonacci number at position <span class="subst">&#123;n&#125;</span> is: <span class="subst">&#123;fibonacci_dp(n)&#125;</span>&quot;</span>)</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h4 id="钢条切割"><a href="#钢条切割" class="headerlink" title="钢条切割"></a>钢条切割</h4><p><strong>问题描述</strong>：</p>
+<p>给定一段长度为 n 英寸的钢条和一个价格表 p<sub>i</sub> (i &#x3D; l, 2, …, n)。求切割钢条方案，使得销售收益 r 最大。注意：如果长度为 n 英寸的钢条的价格 P<sub>n</sub> 足够大，最优解可能就是完全不需要切割。</p>
+<table>
+<thead>
+<tr>
+<th align="center">长度</th>
+<th align="center">1</th>
+<th align="center">2</th>
+<th align="center">3</th>
+<th align="center">4</th>
+<th align="center">5</th>
+<th align="center">6</th>
+<th align="center">7</th>
+<th align="center">8</th>
+<th align="center">9</th>
+<th align="center">10</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">价格</td>
+<td align="center">1</td>
+<td align="center">5</td>
+<td align="center">8</td>
+<td align="center">9</td>
+<td align="center">10</td>
+<td align="center">17</td>
+<td align="center">17</td>
+<td align="center">20</td>
+<td align="center">24</td>
+<td align="center">30</td>
+</tr>
+</tbody></table>
+<p><strong>解决办法</strong>：</p>
+<p>首先我们将这个问题描述数学化。</p>
+<p>如果一个最优解将钢条切割为 k 段（0 &lt; k &lt; n+1）, 那么最优切割方案：</p>
+<p><img src="/2024/09/05/%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92/n.png"></p>
+<p>将钢条切割为长度分别为 i<sub>1</sub>, i<sub>2</sub>, …, i<sub>k</sub> 的小段，得到最大收益：</p>
+<p><img src="/2024/09/05/%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92/r.png"></p>
+<p>考虑给出 r<sub>n</sub> 的递推公式。</p>
+<p>切割的第一刀，可以切在任何位置。且如果是最优解，则切后的两段钢条的切割方案也一定是最优解。</p>
+<p><img src="/2024/09/05/%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92/rn.png"></p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">cut_rod</span>(<span class="params">p, n</span>):</span><br><span class="line">    <span class="comment"># p 是价格列表，n 是钢条的长度</span></span><br><span class="line">    r = [<span class="number">0</span>] * (n + <span class="number">1</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> j <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">1</span>, n + <span class="number">1</span>):</span><br><span class="line">        max_val = <span class="built_in">float</span>(<span class="string">&#x27;-inf&#x27;</span>)</span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">0</span>, j + <span class="number">1</span>):</span><br><span class="line">            <span class="comment"># 计算切割后的最大收益</span></span><br><span class="line">            max_val = <span class="built_in">max</span>(max_val, p[i] + r[j - i])</span><br><span class="line">        r[j] = <span class="built_in">max</span>(max_val, p[j])</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> r[n]</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># 价格表 &amp; 钢条长度</span></span><br><span class="line">prices = [<span class="number">0</span>, <span class="number">1</span>, <span class="number">5</span>, <span class="number">8</span>, <span class="number">9</span>, <span class="number">10</span>, <span class="number">17</span>, <span class="number">17</span>, <span class="number">20</span>, <span class="number">24</span>, <span class="number">30</span>]</span><br><span class="line">length = <span class="number">10</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 计算最大收益</span></span><br><span class="line">max_profit = cut_rod(prices, length)</span><br><span class="line"><span class="built_in">print</span>(<span class="string">f&quot;最大收益为: <span class="subst">&#123;max_profit&#125;</span>&quot;</span>)</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h4 id="矩阵链乘法"><a href="#矩阵链乘法" class="headerlink" title="矩阵链乘法"></a>矩阵链乘法</h4><p><strong>问题描述</strong>：</p>
+<p>给定一个 n 个矩阵的序列（矩阵链）&lt;A<sub>1</sub>, A<sub>2</sub>, …, A<sub>n</sub> &gt;，且矩阵 A<sub>i</sub> 的规模为 p<sub>i-1</sub> *p<sub>i</sub> 。求完全括号化方案（使用结合律加括号），使乘积 A<sub>1</sub>A<sub>2</sub>…A<sub>n</sub> 所需标量乘法次数最少。</p>
+<p><img src="/2024/09/05/%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92/kuo.png" alt="n=4的所有可能括号化方案"></p>
+<p><strong>解决办法</strong>：</p>
+<p>首先：用子问题的最优解来递归地定义原问题最优解。</p>
+<p>对矩阵链乘法问题，我们可以这么定义子问题：</p>
+<ul>
+<li><p>对所有 1 &lt;&#x3D; i &lt;&#x3D; j &lt;&#x3D; n ，确定 &lt;A<sub>i</sub>, A<sub>i+1</sub>, …, A<sub>j</sub> &gt; 的最小代价括化方案。</p>
+</li>
+<li><p>令 <code>m[i, j]</code> 表示计算矩阵 A<sub>i</sub> A<sub>i+1</sub> … A<sub>j</sub> 所需标量乘法次数的最小值，那么，原问题的最优解计算 A<sub>1</sub>A<sub>2</sub>…A<sub>n</sub> 所需的最低代价就是<code>m[1, n]</code>。</p>
+</li>
 </ul>
+<p>然后不难得出<code>m[i, j]</code>的递推公式：</p>
+<p><img src="/2024/09/05/%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92/mij.png"></p>
+<p><code>m[i, j] </code> 的值给出了子问题最优解，但它并未提供足够的信息来构造最优解。为此，我们用 <code>s[i, j]</code> 保存 A<sub>i</sub> A<sub>i+1</sub> … A<sub>j</sub> 最优括号化方案的分割点位置k。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">matrix_chain_order</span>(<span class="params">p</span>):</span><br><span class="line">    <span class="comment"># 矩阵的数量，p 是矩阵的维度列表</span></span><br><span class="line">    <span class="comment"># 创建一个二维数组 m，其中 m[i][j] 表示计算矩阵 Ai...Aj 的乘积所需的最小标量乘法次数</span></span><br><span class="line">    <span class="comment"># 创建一个二维数组 s，其中 s[i][j] 存储计算 m[i][j] 时最优分割点 k 的位置</span></span><br><span class="line">    n = <span class="built_in">len</span>(p) - <span class="number">1</span></span><br><span class="line">    m = [[<span class="number">0</span>] * n <span class="keyword">for</span> _ <span class="keyword">in</span> <span class="built_in">range</span>(n)]</span><br><span class="line">    s = [[<span class="number">0</span>] * n <span class="keyword">for</span> _ <span class="keyword">in</span> <span class="built_in">range</span>(n)]</span><br><span class="line">    </span><br><span class="line">    <span class="comment"># 按链的长度 l 进行处理，l 从 2 到 n</span></span><br><span class="line">    <span class="keyword">for</span> l <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">2</span>, n + <span class="number">1</span>):</span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(n - l + <span class="number">1</span>):</span><br><span class="line">            j = i + l - <span class="number">1</span></span><br><span class="line">            m[i][j] = <span class="built_in">float</span>(<span class="string">&#x27;inf&#x27;</span>)</span><br><span class="line">            <span class="keyword">for</span> k <span class="keyword">in</span> <span class="built_in">range</span>(i, j):</span><br><span class="line">                <span class="comment"># q 表示 Ai...Ak 和 Ak+1...Aj 的乘积所需的标量乘法次数</span></span><br><span class="line">                q = m[i][k] + m[k+<span class="number">1</span>][j] + p[i] * p[k+<span class="number">1</span>] * p[j+<span class="number">1</span>]</span><br><span class="line">                <span class="keyword">if</span> q &lt; m[i][j]:</span><br><span class="line">                    m[i][j] = q</span><br><span class="line">                    s[i][j] = k</span><br><span class="line">    <span class="keyword">return</span> m, s</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">print_optimal_parens</span>(<span class="params">s, i, j</span>):</span><br><span class="line">    <span class="keyword">if</span> i == j:</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">f&#x27;A<span class="subst">&#123;i+<span class="number">1</span>&#125;</span>&#x27;</span>, end=<span class="string">&#x27;&#x27;</span>)</span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&#x27;(&#x27;</span>, end=<span class="string">&#x27;&#x27;</span>)</span><br><span class="line">        print_optimal_parens(s, i, s[i][j])</span><br><span class="line">        print_optimal_parens(s, s[i][j] + <span class="number">1</span>, j)</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&#x27;)&#x27;</span>, end=<span class="string">&#x27;&#x27;</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 矩阵的维度列表，例如：30*35、35*15、15*5、5*10、10*20、20*25</span></span><br><span class="line">p = [<span class="number">30</span>, <span class="number">35</span>, <span class="number">15</span>, <span class="number">5</span>, <span class="number">10</span>, <span class="number">20</span>, <span class="number">25</span>]</span><br><span class="line">m, s = matrix_chain_order(p)</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;最少的标量乘法次数是:&quot;</span>, m[<span class="number">0</span>][<span class="built_in">len</span>(p) - <span class="number">2</span>])</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;最优乘法顺序是:&quot;</span>, end=<span class="string">&#x27; &#x27;</span>)</span><br><span class="line">print_optimal_parens(s, <span class="number">0</span>, <span class="built_in">len</span>(p) - <span class="number">2</span>)</span><br></pre></td></tr></table></figure>
+
 <hr>
-<h4 id="信念"><a href="#信念" class="headerlink" title="信念"></a>信念</h4><ul>
-<li>志之难者，不在胜人，在自胜也。— <em>《韩非子》</em></li>
-<li>船得有航向，人得有追求。就连蚂蚁，看起来是盲动，其实也是各有所奔。— <em>萧乾</em></li>
-<li>（孔子）穷于商周，困于陈蔡，受屈于季氏，见辱于阳虎。</li>
-<li>一个人如果不知道他要驶向何方，那么任何风都不是顺风。— <em>塞涅卡</em></li>
-<li>不说的理想，才像理想。</li>
-<li>原来只要知道寻找的是什么，往往就能从身边随手拈来。— <em>乔伊斯</em></li>
-<li>道之所存，虽千万人吾亦往矣。— <em>孟子</em></li>
-<li>真金之物未必发光，漂泊四海未必迷茫。</li>
-<li>岁月悠悠，衰微只及肌肤；热忱抛却，颓废必致灵魂。— <em>塞缪尔</em></li>
-<li>人吃饭是为了活着，但活着却不是为了吃饭。— <em>季羡林</em></li>
-<li>要有最朴素的生活和最遥远的理想，即使明天天寒地冻，山高水远，路遥马忘。— <em>海子</em></li>
-<li>所谓天堂，即是人的仰望。— <em>史铁生</em></li>
-<li>人生真正重要的不是目标，而是状态。只要状态是好的，就不必再目标的问题上追根究底了，或者可以说目标就是对的。目标的价值不在理论上，而在实践上，就是为了让你的人生有个好的状态。— <em>周国平</em></li>
-<li>少年成为他想的模样，便是岁月最好的奖赏。</li>
-<li>一念既出，万山无阻。</li>
-<li>来时，无惧路上风雨，少年梦痴狂；归时，几度秋凉，鬓角如霜。</li>
-<li>寇可往，亦我可往。</li>
+<h4 id="最长公共子序列"><a href="#最长公共子序列" class="headerlink" title="最长公共子序列"></a>最长公共子序列</h4><p><strong>问题描述</strong>：</p>
+<p>给定两个序列 X &#x3D; &lt;x<sub>1</sub>, x<sub>2</sub>, …, x<sub>m</sub>&gt; 和 Y &#x3D; &lt;y<sub>1</sub>, y<sub>2</sub>, …, y<sub>n</sub>&gt;，求 X 和 Y 最长的公共子序列。</p>
+<p><strong>解决办法</strong>：</p>
+<p>首先，观察到最长公共子序列的递归结构。</p>
+<p><img src="/2024/09/05/%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92/LCS.png"></p>
+<p>我们定义 <code>c[i,j]</code> 表示 X<sub>i</sub> 和 Y<sub>j</sub> 的最长公共子序列的长度。</p>
+<p>则不难得到递推公式：</p>
+<p><img src="/2024/09/05/%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92/recursion.png"></p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">lcs</span>(<span class="params">X, Y</span>):</span><br><span class="line">    <span class="comment"># 初始化矩阵</span></span><br><span class="line">    m = <span class="built_in">len</span>(X)</span><br><span class="line">    n = <span class="built_in">len</span>(Y)</span><br><span class="line">    c = [[<span class="number">0</span>] * (n + <span class="number">1</span>) <span class="keyword">for</span> _ <span class="keyword">in</span> <span class="built_in">range</span>(m + <span class="number">1</span>)]</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 构建c矩阵</span></span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">1</span>, m + <span class="number">1</span>):</span><br><span class="line">        <span class="keyword">for</span> j <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">1</span>, n + <span class="number">1</span>):</span><br><span class="line">            <span class="keyword">if</span> X[i - <span class="number">1</span>] == Y[j - <span class="number">1</span>]:</span><br><span class="line">                c[i][j] = c[i - <span class="number">1</span>][j - <span class="number">1</span>] + <span class="number">1</span></span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                c[i][j] = <span class="built_in">max</span>(c[i - <span class="number">1</span>][j], c[i][j - <span class="number">1</span>])</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 从c矩阵回溯找到LCS</span></span><br><span class="line">    index = c[m][n]</span><br><span class="line">    lcs_seq = [<span class="string">&quot;&quot;</span>] * (index)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 回溯找LCS</span></span><br><span class="line">    i, j = m, n</span><br><span class="line">    <span class="keyword">while</span> i &gt; <span class="number">0</span> <span class="keyword">and</span> j &gt; <span class="number">0</span>:</span><br><span class="line">        <span class="keyword">if</span> X[i - <span class="number">1</span>] == Y[j - <span class="number">1</span>]:</span><br><span class="line">            lcs_seq[index - <span class="number">1</span>] = X[i - <span class="number">1</span>]</span><br><span class="line">            i -= <span class="number">1</span></span><br><span class="line">            j -= <span class="number">1</span></span><br><span class="line">            index -= <span class="number">1</span></span><br><span class="line">        <span class="keyword">elif</span> c[i - <span class="number">1</span>][j] &gt; c[i][j - <span class="number">1</span>]:</span><br><span class="line">            i -= <span class="number">1</span></span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            j -= <span class="number">1</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="string">&quot;&quot;</span>.join(lcs_seq)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 测试</span></span><br><span class="line">X = <span class="string">&quot;ABCBDAB&quot;</span></span><br><span class="line">Y = <span class="string">&quot;BDCAB&quot;</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">f&quot;LCS of <span class="subst">&#123;X&#125;</span> and <span class="subst">&#123;Y&#125;</span> is <span class="subst">&#123;lcs(X, Y)&#125;</span>&quot;</span>)</span><br></pre></td></tr></table></figure>
+
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://xht03.github.io/2024/08/23/%E9%9D%99%E6%80%81%E6%8F%92%E6%A1%A9/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="xht03">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="延绪的水上书">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/08/23/%E9%9D%99%E6%80%81%E6%8F%92%E6%A1%A9/" class="post-title-link" itemprop="url">静态插桩</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2024-08-23 11:14:25" itemprop="dateCreated datePublished" datetime="2024-08-23T11:14:25+08:00">2024-08-23</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2024-09-01 10:14:56" itemprop="dateModified" datetime="2024-09-01T10:14:56+08:00">2024-09-01</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Lee/" itemprop="url" rel="index"><span itemprop="name">Lee</span></a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2024/08/23/%E9%9D%99%E6%80%81%E6%8F%92%E6%A1%A9/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2024/08/23/静态插桩/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h3 id="预备知识"><a href="#预备知识" class="headerlink" title="预备知识"></a>预备知识</h3><p>一段代码，从 <code>.c</code> 源文件到可执行文件经历了4个步骤：</p>
+<ul>
+<li><strong>预处理（Preprocessing）</strong>：主要处理源代码中以<code>#</code>开始的预编译指令，比如<code>#include</code>、<code>#define</code> 等等。预处理完得到的是<code>.i</code>文件。</li>
+<li><strong>编译（Compilation）</strong>：编译完成后，得到的是：汇编文件（<code>.s</code>）</li>
+<li><strong>汇编（Assembly）</strong>：将汇编代码转换成机器可以执行的指令，每一条汇编指令都会对应一条机器指令。汇编完成后，得到的是：可重定向目标文件（<code>.o</code>）。</li>
+<li><strong>链接（Linking）</strong>：通常一份文件会调用其他文件中编写的函数，但当前文件怎么知道去哪里寻找它想调用的函数呢？这就需要链接。链接完成后，得到的是：可执行目标文件。</li>
 </ul>
+<p>其中：可重定向目标文件、可执行目标文件都必须符合<strong>ELF格式（Executable and Linkable Format）</strong>，因此也可称为：<strong>ELF文件</strong>。</p>
 <hr>
-<h4 id="乐观"><a href="#乐观" class="headerlink" title="乐观"></a>乐观</h4><ul>
-<li>快乐，不是一个地方，而是一个方向。— <em>莎士比亚</em></li>
-<li>历经万般红尘劫，犹如凉风轻拂面。</li>
-<li>曾经沧海难为水，除却巫山不是云。</li>
-<li>生活以痛吻我，我却报之以歌。岁月待我凉薄，我却一笑而过。— <em>泰戈尔</em></li>
-<li>劝君立足眼前事，荆棘丛中也开花。</li>
-<li>寄言燕雀莫相啅，自有云霄万里高。— <em>李白</em></li>
-<li>将不幸一口气吸入肺腑，再化为感激呼出，你的人生终会闪闪发光。— <em>小川系</em></li>
-<li>凡是过往，皆为序章。— <em>莎士比亚</em></li>
-<li>所谓无底深渊，下去，也是前程万里。— <em>木心</em></li>
-<li>我总是在最深的绝望中，遇见最美丽的惊喜。— <em>几米</em></li>
+<p>ELF文件包含一下三个部分：</p>
+<ul>
+<li><strong>ELF header</strong></li>
+<li><strong>Sections</strong></li>
+<li><strong>Section header table</strong></li>
 </ul>
+<p>下图是一个 Hello World 可执行程序的 ELF 格式实例。</p>
+<p><img src="/2024/08/23/%E9%9D%99%E6%80%81%E6%8F%92%E6%A1%A9/Users\Keats\Desktop\Erewhon\Yanxu-Blog\source_posts\静态插桩\ELF.png" alt="ELF"></p>
+<p>我们可以通过命令行工具<code>readelf</code>查看 elf 文件。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ readelf -h demo   <span class="comment">#查看elf header</span></span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/08/23/%E9%9D%99%E6%80%81%E6%8F%92%E6%A1%A9/Users\Keats\Desktop\Erewhon\Yanxu-Blog\source_posts\静态插桩\elf_header.png" alt="ELF header"></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ readelf -S demo   <span class="comment">#查看各个section信息</span></span><br></pre></td></tr></table></figure>
+
+<p>  <img src="/2024/08/23/%E9%9D%99%E6%80%81%E6%8F%92%E6%A1%A9/Users\Keats\Desktop\Erewhon\Yanxu-Blog\source_posts\静态插桩\sections1.png" alt="Sections"></p>
 <hr>
-<h4 id="少年"><a href="#少年" class="headerlink" title="少年"></a>少年</h4><ul>
-<li>乳虎啸谷，百兽震惶；鹰隼试翼，风尘翕张。— <em>梁启超</em></li>
-<li>少年何方梦摘星，敢挽桑弓射玉衡。</li>
-<li>四时可爱唯春日，一事能狂便少年。— <em>王维</em></li>
-<li>鲜衣怒马少年时，不负韶华行且知。</li>
-<li>青春须早为，岂能长少年。— <em>孟郊</em></li>
-<li>理直气壮，眼中有光。</li>
-<li>白马长枪飘如诗，所向披靡少年时。</li>
-<li>志当存高远，英雄犹少年。</li>
-<li>少年振衣，岂不可做千里风幡看；少年瞬目，亦可壮作万古清流想。— <em>张晓风</em></li>
+<p>这里容易混淆的是：<strong>ELF Header</strong>、<strong>Program Header</strong>、<strong>Section Header</strong>：</p>
+<ul>
+<li><strong>ELF Header</strong> 是 ELF 文件的文件头，它是文件的起始部分，为加载器和链接器提供必要的信息来处理文件。</li>
+<li><strong>Program Header</strong> 是一个数据结构，它定义了程序如何加载到内存中。每个 <strong>Program Header</strong> 都包含了一个段（<strong>Segment</strong>）的加载信息，比如它的类型、在文件中的偏移量、在内存中的地址、大小等。</li>
+<li><strong>Program Header Table</strong> 是一个由多个 <strong>Program Header</strong> 组成的数组，它按照程序头的顺序排列。<strong>Program Header Table</strong> 通常位于 <strong>ELF Header</strong> 之后，通常在文件的开始部分，这样加载器可以快速地找到并读取它。</li>
+<li><strong>Section Header</strong> 定义了文件中的节（<strong>Section</strong>）的属性和信息。每个节头条目（Section Header Entry）都包含了关于一个特定节的元数据。</li>
 </ul>
+<p>注意：</p>
+<p>Sections 中的第一个 Section（索引为0的section）就是 <strong>Program Header Table</strong>。</p>
+<blockquote>
+<p>以之前图中 ELF 文件为例。</p>
+<p>**ELF Header **占据最开始的64个字节。</p>
+<p>紧接着是<strong>Program Header Table</strong>，总共占据 56 * 13 &#x3D; 728个字节。</p>
+<p>所以真正的第一个section（.interp）开始地址应该是：64 + 728 &#x3D; 792 &#x3D; 0x318。</p>
+</blockquote>
 <hr>
-<p>to be continued</p>
+<p>另外一个容易混淆的是：<strong>节（Section）</strong>、<strong>段（Segment）</strong>。</p>
+<ul>
+<li><p>Section 称为节，是指在汇编源码中经由关键字section或segment修饰、逻辑划分的指令或数据区域，汇编器会将这两个关键字修饰的区域在目标文件中编译成节，也就是说”节”最初诞生于目标文件中。</p>
+</li>
+<li><p>Segment 称为段，是，链接器把目标文件链接成可执行文件，因此段最终诞生于可执行文件中。我们平时所说的可执行程序内存空间中的代码段和数据段就是指的Segment。</p>
+</li>
+</ul>
+<p><img src="/2024/08/23/%E9%9D%99%E6%80%81%E6%8F%92%E6%A1%A9/Users\Keats\Desktop\Erewhon\Yanxu-Blog\source_posts\静态插桩\Segment.png" alt="Section Vs Segment"></p>
+<ul>
+<li>左边是ELF的<strong>链接</strong>视图，可以理解为是<strong>目标文件</strong>的内容布局。</li>
+<li>右边是ELF的<strong>执行</strong>视图，可以理解为<strong>可执行文件</strong>的内容布局。</li>
+</ul>
+<p>注意：目标代码文件的内容是由 <strong>Section</strong> 组成的，而可执行文件的内容是由 <strong>Segment</strong> 组成的。</p>
+<ul>
+<li><p>我们查看汇编程序时，<code>.text</code>，<code>.bss</code>，<code>.data</code> 都指的是 <strong>Section</strong>。目标代码文件中的 <strong>Section</strong> 和 <strong>Section Header Table</strong> 中的条目是一一对应的。<strong>Section</strong> 的信息用于链接器对代码重定位。</p>
+</li>
+<li><p>而文件载入内存执行时，是以 <strong>Segment</strong> 组织的，每个 <strong>Segment</strong> 对应 ELF 文件中 <strong>Program Header Table</strong> 中的一个条目，用来建立可执行文件的进程映像。链接器将目标文件中属性相同的多个 <strong>Section</strong> 合并，从而形成新的可执行文件；合并后的 <strong>Section</strong> 的集合，称为 <strong>Segment</strong>。例如：所有<code>.text</code> <strong>Section</strong> 会被合并成一个新的<code>.text</code> <strong>Segment</strong>。</p>
+</li>
+</ul>
+<p>注意：在目标文件中，<strong>Program Header</strong> 不是必须的，我们用 gcc 生成的目标文件也不包含 <strong>Program Header</strong>。</p>
+<hr>
+<p>在所有Sections中，有一个section比较特殊：<code>.shstrtab</code>。</p>
+<p><img src="/2024/08/23/%E9%9D%99%E6%80%81%E6%8F%92%E6%A1%A9/Users\Keats\Desktop\Erewhon\Yanxu-Blog\source_posts\静态插桩\shstrtab.png" alt="Section Header String Table"></p>
+<blockquote>
+<p>在之前查看 <strong>ELF Header</strong> 的时候，<strong>ELF Header</strong> 就提供了 <code>.shstrtab</code> Section 的索引是多少。</p>
+</blockquote>
+<ul>
+<li><p><strong>节头字符串表</strong>（Section Header String Table，简称SHSTRTAB）是 ELF 文件中的一个特殊 section。它包含所有 section 名称的字符串。</p>
+</li>
+<li><p>每个 <strong>Section Header</strong> 中的<code>sh_name</code>字段是一个索引，指向节头字符串表中的一个位置，该位置存储了该 section 的名称。</p>
+</li>
+<li><p>节头字符串表本质上是一个以空字符（<code>\0</code>）分隔的字符串集合。每个section的名称在这个表中都有一个唯一的偏移量，该偏移量存储在对应section头部的<code>sh_name</code>字段中。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">0x00: &quot;\0&quot;</span><br><span class="line">0x01: &quot;.text\0&quot;</span><br><span class="line">0x07: &quot;.data\0&quot;</span><br><span class="line">0x0D: &quot;.bss\0&quot;</span><br></pre></td></tr></table></figure></li>
+</ul>
+<h3 id="技术路线"><a href="#技术路线" class="headerlink" title="技术路线"></a>技术路线</h3><p>我们希望采用跳板技术实现静态插桩。</p>
+<ul>
+<li><strong>跳板技术</strong>：简单来说，就是通过设置一个中间点（跳板），让程序先跳到这个中间点，然后由这个中间点再跳到最终的目标函数去执行。这个过程就像是设置了一个中转站，让程序先到中转站，再由中转站引导到目的地。</li>
+<li>我们给目标程序<strong>新增加一个section</strong>作为跳板（trampoline）。</li>
+</ul>
+<p>具体分为两个函数：</p>
+<ol>
+<li>创造trampoline空间的函数：Crt_Trpline</li>
+<li>进行二进制插桩的函数： Sinsert</li>
+<li>复原函数：recover</li>
+</ol>
+<h3 id="代码实现"><a href="#代码实现" class="headerlink" title="代码实现"></a>代码实现</h3><p><a target="_blank" rel="noopener" href="https://sourceware.org/binutils/docs/bfd.pdf">bfd.pdf</a></p>
+<p>在BFD（Binary File Descriptor）库中，<code>bfd_make_section</code> 及其相关函数用于创建新的节（section）并将其附加到BFD（Binary File Descriptor）结构中。这些函数提供了不同的选项和功能，以适应不同的使用场景。以下是一些常见的 <code>make section</code> 函数及其区别和功能：</p>
+<ol>
+<li><p><strong><code>bfd_make_section</code></strong></p>
+<ul>
+<li>功能：创建一个新的空节，并将其附加到BFD的节链表中。</li>
+<li>参数：只需要提供BFD和节的名称。</li>
+<li>特点：如果同名节已存在，则不会创建新的节，而是返回现有的节。</li>
+</ul>
+</li>
+<li><p><strong><code>bfd_make_section_anyway</code></strong></p>
+<ul>
+<li>功能：创建一个新的空节，即使同名节已存在，也会创建新的节，并附加到BFD的节链表中。</li>
+<li>参数：提供BFD和节的名称。</li>
+<li>特点：不检查是否已存在同名节，总是创建新的节。</li>
+</ul>
+</li>
+<li><p><strong><code>bfd_make_section_with_flags</code></strong></p>
+<ul>
+<li>功能：创建一个新的节，并为其设置特定的标志（flags）。</li>
+<li>参数：提供BFD、节的名称和要设置的标志。</li>
+<li>特点：允许在创建节时指定节的属性，如是否可加载、是否可执行等。</li>
+</ul>
+</li>
+<li><p><strong><code>bfd_make_section_anyway_with_flags</code></strong></p>
+<ul>
+<li>功能：创建一个新的节，并为其设置特定的标志，即使同名节已存在。</li>
+<li>参数：提供BFD、节的名称和要设置的标志。</li>
+<li>特点：结合了 <code>bfd_make_section_with_flags</code> 和 <code>bfd_make_section_anyway</code> 的功能。</li>
+</ul>
+</li>
+<li><p><strong><code>bfd_make_section_old_way</code></strong></p>
+<ul>
+<li>功能：使用旧方法创建一个新的节。</li>
+<li>参数：只需要提供BFD和节的名称。</li>
+<li>特点：如果同名节已存在，则不会创建新的节，而是返回现有的节。这是较老的API，可能在新版本的BFD中不再推荐使用。</li>
+</ul>
+</li>
+<li><p><strong><code>bfd_set_section_flags</code></strong></p>
+<ul>
+<li>功能：设置现有节的标志。</li>
+<li>参数：提供节和要设置的标志。</li>
+<li>特点：不创建新节，只修改现有节的属性。</li>
+</ul>
+</li>
+<li><p><strong><code>bfd_set_section_size</code></strong></p>
+<ul>
+<li>功能：设置现有节的大小。</li>
+<li>参数：提供节和新的大小。</li>
+<li>特点：不创建新节，只修改现有节的大小。</li>
+</ul>
+</li>
+<li><p><strong><code>bfd_set_section_contents</code></strong></p>
+<ul>
+<li>功能：设置现有节的内容。</li>
+<li>参数：提供BFD、节、数据缓冲区、偏移量和数据大小。</li>
+<li>特点：不创建新节，只修改现有节的内容。</li>
+</ul>
+</li>
+</ol>
+<p>这些函数提供了灵活的方式来创建和管理BFD中的节。选择哪个函数取决于你的具体需求，比如是否需要检查同名节的存在、是否需要设置特定的节属性等。在实际应用中，应根据目标文件格式和操作需求选择合适的函数。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h4 id="如何新增section"><a href="#如何新增section" class="headerlink" title="如何新增section"></a>如何新增section</h4><p>我们主要通过c语言标准库中提供的工具来编辑 elf header。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;elf.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;libelf.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;gelf.h&gt;</span></span></span><br></pre></td></tr></table></figure>
+
 
       
     </div>
@@ -2298,261 +2552,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://xht03.github.io/2024/02/04/Shell%E7%AE%80%E6%98%8E%E6%95%99%E7%A8%8B/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="xht03">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="延绪的水上书">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/02/04/Shell%E7%AE%80%E6%98%8E%E6%95%99%E7%A8%8B/" class="post-title-link" itemprop="url">Shell简明教程</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-              
-
-              <time title="创建时间：2024-02-04 10:49:32 / 修改时间：20:28:07" itemprop="dateCreated datePublished" datetime="2024-02-04T10:49:32+08:00">2024-02-04</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/The-Missing-Semester/" itemprop="url" rel="index"><span itemprop="name">The Missing Semester</span></a>
-                </span>
-            </span>
-
-          
-  
-  <span class="post-meta-item">
-    
-      <span class="post-meta-item-icon">
-        <i class="far fa-comment"></i>
-      </span>
-      <span class="post-meta-item-text">Disqus：</span>
-    
-    <a title="disqus" href="/2024/02/04/Shell%E7%AE%80%E6%98%8E%E6%95%99%E7%A8%8B/#disqus_thread" itemprop="discussionUrl">
-      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2024/02/04/Shell简明教程/" itemprop="commentCount"></span>
-    </a>
-  </span>
-  
-  
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h3 id="shell-使用"><a href="#shell-使用" class="headerlink" title="shell 使用"></a>shell 使用</h3><h4 id="什么是shell"><a href="#什么是shell" class="headerlink" title="什么是shell"></a>什么是shell</h4><p>如今的计算机有着多种多样的交互接口让我们可以进行指令的的输入，如：图像化的用户界面（GUI）、语音输入 、AR&#x2F;VR 。 这些交互接口可以覆盖 80% 的使用场景，但是它们也从根本上限制了你的操作方式——你不能点击一个不存在的按钮或者是用语音输入一个还没有被录入的指令。为了充分利用计算机的能力，我们不得不回到最根本的方式，使用文字接口：Shell。</p>
-<p>shell 通常指的是操作系统提供给用户与内核进行交互的用户接口。<strong>Bourne Again Shell</strong>，简称 <strong>bash</strong>。 这是被最广泛使用的一种 shell，它的语法和其他的 shell 都是类似的。</p>
-<hr>
-<h4 id="shell-大致原理"><a href="#shell-大致原理" class="headerlink" title="shell 大致原理"></a>shell 大致原理</h4><p>shell 基于空格分割命令并进行解析，然后执行第一个单词代表的程序，并将后续的单词作为程序可以访问的参数。如果您希望传递的参数中包含空格（例如一个名为 My Photos 的文件夹），您要么用使用单引号，双引号将其包裹起来，要么使用转义符号 <code>\</code> 进行处理（<code>My\ Photos</code>）。</p>
-<p>类似于 Python 或 Ruby，shell 是一个编程环境，所以它具备变量、条件、循环和函数。当你在 shell 中执行命令时，您实际上是在执行一段 shell 可以解释执行的简短代码。如果你要求 shell 执行某个指令，但是该指令并不是 shell 所了解的编程关键字，那么它会去咨询 <em>环境变量</em> <code>$PATH</code>，它会列出当 shell 接到某条指令时，进行程序搜索的路径。随后它便会在 <code>$PATH</code> 中搜索由 <code>:</code> 所分割的一系列目录，基于名字搜索该程序。当找到该程序时便执行。</p>
-<hr>
-<h4 id="基础指令"><a href="#基础指令" class="headerlink" title="基础指令"></a>基础指令</h4><ul>
-<li><p>查看时间：<code>date</code></p>
-</li>
-<li><p>打印文本或变量：<code>echo</code></p>
-</li>
-<li><p>查看指定目录下所有文件：<code>ls</code></p>
-</li>
-<li><p>查看命令手册：<code>man</code></p>
-<p><em>注意：</em></p>
-<ol>
-<li><em>通常，在执行程序时使用 <code>-h</code> 或 <code>--help</code> 标记可以打印帮助信息，以便了解有哪些可用的标记或选项。</em></li>
-<li><em>如果您想要知道某个命令（程序）怎么用，请试试 <code>man</code> 这个程序。它会接受一个程序名作为参数，然后将它的文档（用户手册）展现给您。</em></li>
-</ol>
-</li>
-</ul>
-<hr>
-<h4 id="在shell中导航"><a href="#在shell中导航" class="headerlink" title="在shell中导航"></a>在shell中导航</h4><ul>
-<li><p>当前工作目录：<code>pwd</code></p>
-</li>
-<li><p>切换目录：<code>cd</code></p>
-</li>
-<li><p>查找命令（程序）的路径：<code>which</code></p>
-<p><em>注意：</em></p>
-<ol>
-<li><em>在 Linux 和 macOS 上，路径使用 <code>/</code> 分割，而在Windows上是 <code>\</code>。路径 <code>/</code> 代表的是系统的根目录，所有的文件夹都包括在这个路径之下；在Windows上每个盘都有一个根目录（例如： <code>C:\</code>）。</em></li>
-<li>*在 Linux 文件系统中，如果某个路径以 <code>/</code> 开头，那么它是一个 <strong>绝对路径</strong>，其他的都是 <strong>相对路径</strong>。相对路径是指相对于当前工作目录的路径。在路径中，<code>.</code> 表示的是当前目录，而 <code>..</code> 表示上级目录：*</li>
-<li><em>如果命令在 <code>PATH</code> 中找不到，<code>which</code> 通常不会输出任何内容。</em></li>
-</ol>
-</li>
-</ul>
-<hr>
-<h4 id="文件操作"><a href="#文件操作" class="headerlink" title="文件操作"></a>文件操作</h4><ul>
-<li>创建空文件：<code>touch</code></li>
-<li>移动文件 或 重命名：<code>mv</code></li>
-<li>拷贝文件：<code>cp</code></li>
-<li>新建文件夹：<code>mkdir</code></li>
-<li>显示文件内容 或 连接文件：<code>cat</code></li>
-<li>删除文件：<code>rm</code></li>
-<li>查看文件末尾内容：<code>tail</code></li>
-</ul>
-<hr>
-<h4 id="重定向"><a href="#重定向" class="headerlink" title="重定向"></a>重定向</h4><p>在 shell 中，程序有两个主要的“<strong>流</strong>”：它们的<strong>输入流</strong>和<strong>输出流</strong>。 当程序尝试读取信息时，它们会从输入流中进行读取，当程序打印信息时，它们会将信息输出到输出流中。 通常，一个程序的输入输出流都是你的终端。也就是，你的键盘作为输入，显示器作为输出。 但是，我们也可以重定向这些流！</p>
-<p>最简单的重定向是 <code>&lt; file</code> 和 <code>&gt; file</code>。这两个命令可以将程序的输入输出流分别重定向到文件：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">(Py) keats@OMEN-Yanxu:~/Avalon$ <span class="built_in">touch</span> hello.txt</span><br><span class="line">(Py) keats@OMEN-Yanxu:~/Avalon$ <span class="built_in">echo</span> <span class="string">&quot;hello world!&quot;</span> &gt; hello.txt</span><br><span class="line">(Py) keats@OMEN-Yanxu:~/Avalon$ <span class="built_in">cat</span> hello.txt</span><br><span class="line">hello world!</span><br></pre></td></tr></table></figure>
-
-<p>你还可以使用 <code>&gt;&gt;</code> 来向一个文件追加内容（<em>将命令的输出追加到文件的末尾，而不是覆盖文件内容</em>）。</p>
-<p>使用<strong>管道（ <em>pipes</em> ）</strong>，我们能够更好的利用文件重定向。 <code>|</code> 操作符允许我们将一个程序的输出和另外一个程序的输入连接起来：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">(Py) keats@OMEN-Yanxu:~/Avalon$ <span class="built_in">ls</span></span><br><span class="line">ICS  IGEM  PJ  Research  vpn.yaml</span><br><span class="line">(Py) keats@OMEN-Yanxu:~/Avalon$ <span class="built_in">ls</span> -l | <span class="built_in">tail</span> -n1</span><br><span class="line">-rw-r--r-- 1 keats keats  504 Jan 26 12:35 vpn.yaml</span><br></pre></td></tr></table></figure>
-
-<hr>
-<h4 id="根用户"><a href="#根用户" class="headerlink" title="根用户"></a>根用户</h4><p>对于大多数的类 Unix 系统，有一类用户是非常特殊的，那就是：<strong>根用户（root user）</strong>。 你应该已经注意到了，在上面的输出结果中，根用户几乎不受任何限制，他可以创建、读取、更新和删除系统中的任何文件。 通常在我们并不会以根用户的身份直接登录系统，因为这样可能会因为某些错误的操作而破坏系统。 取而代之的是我们会在需要的时候使用 <code>sudo</code> 命令。顾名思义，它的作用是让您可以以 su（super user 或 root 的简写）的身份执行一些操作。 当您遇到拒绝访问（permission denied）的错误时，通常是因为此时您必须是根用户才能操作。</p>
-<h3 id="shell-脚本"><a href="#shell-脚本" class="headerlink" title="shell 脚本"></a>shell 脚本</h3><h4 id="什么是-shell-脚本"><a href="#什么是-shell-脚本" class="headerlink" title="什么是 shell 脚本"></a>什么是 shell 脚本</h4><p>shell 脚本是<strong>一系列用 shell 语言编写的命令</strong>，它们按照特定的顺序组织在一个文件中，以执行特定的任务或自动化操作。shell 脚本通常用于执行一系列的命令、条件判断、循环等操作，为用户提供一个方便的方式来批量处理任务。</p>
-<hr>
-<h4 id="变量赋值"><a href="#变量赋值" class="headerlink" title="变量赋值"></a>变量赋值</h4><ul>
-<li><p>为变量赋值：<code>foo=bar</code></p>
-</li>
-<li><p>访问变量中存储的数值： <code>$foo</code></p>
-<p><em>注意：</em></p>
-<ol>
-<li><em><code>foo = bar</code> （使用空格隔开）是不能正确工作的。因为解释器会调用程序<code>foo</code> 并将 <code>=</code> 和 <code>bar</code>作为参数。 总的来说，在shell脚本中使用空格会起到分割参数的作用，有时候可能会造成混淆，请务必多加检查。</em></li>
-<li><em>Bash中的字符串通过<code>&#39;</code> 和 <code>&quot;</code>分隔符来定义，但是它们的含义并不相同。以<code>&#39;</code>定义的字符串为<strong>原义</strong>字符串，其中的变量不会被<strong>转义</strong>，而 <code>&quot;</code>定义的字符串会将变量值进行替换。</em></li>
-</ol>
-</li>
-</ul>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">(Py) keats@OMEN-Yanxu:~/Avalon$ foo=bar</span><br><span class="line">(Py) keats@OMEN-Yanxu:~/Avalon$ <span class="built_in">echo</span> foo</span><br><span class="line">foo</span><br><span class="line">(Py) keats@OMEN-Yanxu:~/Avalon$ <span class="built_in">echo</span> <span class="variable">$foo</span></span><br><span class="line">bar</span><br><span class="line">(Py) keats@OMEN-Yanxu:~/Avalon$ <span class="built_in">echo</span> <span class="string">&#x27;$foo&#x27;</span></span><br><span class="line"><span class="variable">$foo</span></span><br><span class="line">(Py) keats@OMEN-Yanxu:~/Avalon$ <span class="built_in">echo</span> <span class="string">&quot;<span class="variable">$foo</span>&quot;</span></span><br><span class="line">bar</span><br></pre></td></tr></table></figure>
-
-<hr>
-<h4 id="特殊变量"><a href="#特殊变量" class="headerlink" title="特殊变量"></a>特殊变量</h4><p>和其他大多数的编程语言一样，<code>bash</code>也支持**<code>if</code>, <code>case</code>, <code>while</code> 和 <code>for</code>** 这些控制流关键字。同样地， <code>bash</code> 也支持<strong>函数</strong>，它可以接受参数并基于参数进行操作。下面这个函数是一个例子，它会创建一个文件夹并使用<code>cd</code>进入该文件夹。</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="title">mcd</span></span> () &#123;</span><br><span class="line">    <span class="built_in">mkdir</span> -p <span class="string">&quot;<span class="variable">$1</span>&quot;</span></span><br><span class="line">    <span class="built_in">cd</span> <span class="string">&quot;<span class="variable">$1</span>&quot;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>与其他脚本语言不同，bash使用了很多<strong>特殊的变量</strong>来表示参数、错误代码和相关变量。常见的有：</p>
-<ul>
-<li><code>$0</code> - 脚本名</li>
-<li><code>$1</code> 到 <code>$9</code> - 脚本的参数。 <code>$1</code> 是第一个参数，依此类推。</li>
-<li><code>$@</code> - 所有参数</li>
-<li><code>$#</code> - 参数个数</li>
-<li><code>$?</code> - 前一个命令的返回值</li>
-<li><code>$$</code> - 当前脚本的进程识别码</li>
-<li><code>!!</code> - 完整的上一条命令，包括参数。<em>常见应用：当你因为权限不足执行命令失败时，可以使用 <code>sudo !!</code>再尝试一次。</em></li>
-<li><code>$_</code> - 上一条命令的最后一个参数。<em>如果你正在使用的是交互式 shell，你可以通过按下 <code>Esc</code> 之后键入 . 来获取这个值。</em></li>
-</ul>
-<hr>
-<h4 id="输入输出"><a href="#输入输出" class="headerlink" title="输入输出"></a>输入输出</h4><p>一般情况下，每个 Unix&#x2F;Linux 命令运行时都会打开三个文件：</p>
-<ul>
-<li>**标准输入文件(stdin)**：stdin的文件描述符为0，Unix程序默认从stdin读取数据。</li>
-<li>**标准输出文件(stdout)**：stdout 的文件描述符为1，Unix程序默认向stdout输出数据。</li>
-<li>**标准错误文件(stderr)**：stderr的文件描述符为2，Unix程序会向stderr流中写入错误信息。</li>
-</ul>
-<p>默认情况下，<code>command &gt; file</code> 将 stdout 重定向到 file，<code>command &lt; file</code> 将 stdin 重定向到 file。</p>
-<ul>
-<li><p>如果希望 stderr 重定向到 file，可以这样写：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">command</span> 2&gt;file	<span class="comment"># 2表示标准错误文件(stderr)</span></span><br></pre></td></tr></table></figure>
-</li>
-<li><p>如果希望将 stdout 和 stderr 合并后重定向到 file，可以这样写：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">command</span> &gt; file 2&gt;&amp;1	<span class="comment"># 2&gt;&amp;1 表示将 标准错误2 重定向到与 标准输出1 相同的位置</span></span><br></pre></td></tr></table></figure>
-</li>
-<li><p>如果希望对 stdin 和 stdout 都重定向，可以这样写：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">command</span> &lt; file1 &gt;file2	<span class="comment"># &lt;和&gt;后面是否空格不影响命令执行</span></span><br></pre></td></tr></table></figure></li>
-</ul>
-<hr>
-<h4 id="返回值（退出码）"><a href="#返回值（退出码）" class="headerlink" title="返回值（退出码）"></a>返回值（退出码）</h4><p>命令通常使用 <code>STDOUT</code>来返回输出值，使用<code>STDERR</code> 来返回错误及错误码，便于脚本以更加友好的方式报告错误。 <strong>返回码或退出状态</strong>是脚本&#x2F;命令之间交流执行状态的方式。返回值0表示正常执行，其他所有非0的返回值都表示有错误发生。</p>
-<p>退出码可以搭配 <code>&amp;&amp;</code>（与操作符）和 <code>||</code>（或操作符）使用，用来进行条件判断，决定是否执行其他程序。它们都属于<a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/Short-circuit_evaluation">短路运算符</a>。同一行的多个命令可以用<code>;</code>分隔。程序 <code>true</code> 的返回码永远是<code>0</code>，<code>false</code> 的返回码永远是<code>1</code>。</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">(Py) keats@OMEN-Yanxu:~/Avalon$ <span class="literal">false</span> || <span class="built_in">echo</span> <span class="string">&quot;Oops, fail&quot;</span></span><br><span class="line">Oops, fail</span><br><span class="line">(Py) keats@OMEN-Yanxu:~/Avalon$ <span class="literal">true</span> || <span class="built_in">echo</span> <span class="string">&quot;Will not be printed&quot;</span></span><br><span class="line">(Py) keats@OMEN-Yanxu:~/Avalon$ <span class="literal">true</span> &amp;&amp; <span class="built_in">echo</span> <span class="string">&quot;Things went well&quot;</span></span><br><span class="line">Things went well</span><br><span class="line">(Py) keats@OMEN-Yanxu:~/Avalon$ <span class="literal">false</span> &amp;&amp; <span class="built_in">echo</span> <span class="string">&quot;Will not be printed&quot;</span></span><br><span class="line">(Py) keats@OMEN-Yanxu:~/Avalon$ <span class="literal">false</span> ; <span class="built_in">echo</span> <span class="string">&quot;This will always run&quot;</span></span><br><span class="line">This will always run</span><br></pre></td></tr></table></figure>
-
-<p>另一个常见的模式是以变量的形式获取一个命令的输出，这可以通过 <strong>命令替换（command substitution）</strong>实现。下面是一个例子：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">(Py) keats@OMEN-Yanxu:~/Avalon$ <span class="built_in">echo</span> <span class="string">&quot;Starting program at <span class="subst">$(date)</span>&quot;</span></span><br><span class="line">Starting program at Sun Feb  4 16:35:02 CST 2024</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li><p>当你通过 <code>$( CMD )</code> 这样的方式来执行<code>CMD</code> 这个命令时，它的输出结果会替换掉 <code>$( CMD )</code> 。</p>
-<p><em>例如，如果执行 <code>for file in $(ls)</code> ，shell首先将调用<code>ls</code> ，然后遍历得到的这些返回值。</em></p>
-</li>
-</ul>
-<p>还有一个冷门的类似特性是 <strong>进程替换（process substitution）</strong>。这在我们希望返回值通过文件而不是STDIN传递时很有用</p>
-<ul>
-<li><code>&lt;( CMD )</code> 会执行 <code>CMD</code> 并将结果输出到一个临时文件中，并将 <code>&lt;( CMD )</code> 替换成临时文件名。。</li>
-</ul>
-<p>  <em>例如， <code>diff &lt;(ls foo) &lt;(ls bar)</code> 会显示文件夹 <code>foo</code> 和 <code>bar</code> 中文件的区别。</em></p>
-<hr>
-<h4 id="通配"><a href="#通配" class="headerlink" title="通配"></a>通配</h4><p>当执行脚本时，我们经常需要提供形式类似的参数。bash使我们可以轻松的实现这一操作，它可以基于文件扩展名展开表达式。这一技术被称为shell的 <strong>通配（globbing）</strong>。</p>
-<ul>
-<li><p><strong>通配符</strong>：当你想要利用通配符进行匹配时，你可以分别使用 <code>?</code> 和 <code>*</code> 来匹配一个或任意个字符。</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 对于文件foo, foo1, foo2, foo10 和 bar</span></span><br><span class="line">$ <span class="built_in">rm</span> foo?	<span class="comment"># 删除 foo1 和 foo2</span></span><br><span class="line">$ <span class="built_in">rm</span> foo*	<span class="comment"># 删除除了`bar`之外的所有文件</span></span><br></pre></td></tr></table></figure>
-</li>
-<li><p>**花括号<code>&#123;&#125;</code>**：当你有一系列的指令，其中包含一段公共子串时，可以用花括号来自动展开这些命令。这在批量移动或转换文件时非常方便。</p>
-</li>
-</ul>
-<hr>
-<h4 id="shebang"><a href="#shebang" class="headerlink" title="shebang"></a>shebang</h4><p>注意，脚本并不一定只有用 bash 写才能在终端里调用。比如说，这是一段 Python 脚本，作用是将输入的参数倒序输出：</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#!/usr/local/bin/python</span></span><br><span class="line"><span class="keyword">import</span> sys</span><br><span class="line"><span class="keyword">for</span> arg <span class="keyword">in</span> <span class="built_in">reversed</span>(sys.argv[<span class="number">1</span>:]):</span><br><span class="line">    <span class="built_in">print</span>(arg)</span><br></pre></td></tr></table></figure>
-
-<p>内核知道去用 python 解释器而不是 shell 命令来运行这段脚本，是因为脚本的开头第一行的 <a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/Shebang_(Unix)">shebang</a>。</p>
-<p>在 <code>shebang</code> 行中使用 <code>env</code> 命令是一种很好的实践，它会利用环境变量中的程序来解析该脚本，这样就提高来您的脚本的可移植性。<code>env</code> 会利用我们第一节讲座中介绍过的<code>PATH</code> 环境变量来进行定位。 例如，此处使用了<code>env</code>的shebang看上去时这样的<code>#!/usr/bin/env python</code>。</p>
-<hr>
-<h4 id="shell-函数-VS-脚本"><a href="#shell-函数-VS-脚本" class="headerlink" title="shell 函数 VS 脚本"></a>shell 函数 VS 脚本</h4><p>初次接触的小伙伴们可能有些疑惑，我们敲进命令行的一条条函数和脚本有什么区别呢？粗略地看，有如下一些不同点：</p>
-<ul>
-<li>函数只能与shell使用相同的语言，脚本可以使用任意语言。因此在脚本中包含 <code>shebang</code> 是很重要的。</li>
-<li>函数仅在定义时被加载，脚本会在每次被执行时加载。这让函数的加载比脚本略快一些，但每次修改函数定义，都要重新加载一次。</li>
-<li>函数会在当前的shell环境中执行，脚本会在单独的进程中执行。因此，函数可以对环境变量进行更改，比如改变当前工作目录，脚本则不行。脚本需要使用 <code>export</code>将环境变量导出，并将值传递给环境变量。</li>
-<li>与其他程序语言一样，函数可以提高代码模块性、代码复用性并创建清晰性的结构。shell脚本中往往也会包含它们自己的函数定义。</li>
-</ul>
-<h3 id="shell-工具"><a href="#shell-工具" class="headerlink" title="shell 工具"></a>shell 工具</h3><h4 id="查看命令如何使用"><a href="#查看命令如何使用" class="headerlink" title="查看命令如何使用"></a>查看命令如何使用</h4><p><code>man</code>命令是手册（manual）的缩写，它提供了命令的用户手册。</p>
-<hr>
-<h4 id="查找文件"><a href="#查找文件" class="headerlink" title="查找文件"></a>查找文件</h4><p>所有的类UNIX系统都包含一个名为 <code>find</code>的工具，它是 shell 上用于查找文件的绝佳工具。<code>find</code>命令会递归地搜索符合条件的文件。</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 查找所有名称为src的文件夹</span></span><br><span class="line">$ find . -name src -<span class="built_in">type</span> d</span><br><span class="line"><span class="comment"># 查找前一天修改的所有文件</span></span><br><span class="line">$ find . -mtime -1</span><br></pre></td></tr></table></figure>
-
-<p>除了列出所寻找的文件之外，<code>find</code> 还能对所有查找到的文件进行操作。这能极大地简化一些单调的任务。</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 删除全部扩展名为.tmp 的文件</span></span><br><span class="line">$ find . -name <span class="string">&#x27;*.tmp&#x27;</span> -<span class="built_in">exec</span> <span class="built_in">rm</span> &#123;&#125; \;</span><br><span class="line"><span class="comment"># 查找全部的 PNG 文件并将其转换为 JPG</span></span><br><span class="line">$ find . -name <span class="string">&#x27;*.png&#x27;</span> -<span class="built_in">exec</span> convert &#123;&#125; &#123;&#125;.jpg \;w</span><br></pre></td></tr></table></figure>
-
-<hr>
-<h4 id="查看代码"><a href="#查看代码" class="headerlink" title="查看代码"></a>查看代码</h4><p>很多类UNIX的系统都提供了<code>grep</code>命令，它是用于对输入文本进行匹配的通用工具。</p>
-<p><code>grep</code> 有很多选项，这也使它成为一个非常全能的工具。其中我们经常使用的有：</p>
-<ul>
-<li><code>-C</code> ：获取查找结果的上下文（Context）。</li>
-<li><code>-v</code> ：将对结果进行反选（Invert），也就是输出不匹配的结果。</li>
-<li><code>-R</code> ：递归地进入子目录并搜索所有的文本文件。</li>
-</ul>
-<p>举例来说， <code>grep -C 5</code> 会输出匹配结果前后五行。</p>
-<hr>
-<h4 id="查找-shell-命令"><a href="#查找-shell-命令" class="headerlink" title="查找 shell 命令"></a>查找 shell 命令</h4><p>随着你使用shell的时间越来越久，你可能想要找到之前输入过的某条命令。</p>
-<ul>
-<li><p>按<strong>向上的方向键</strong>会显示你使用过的上一条命令，继续按上键则会遍历整个历史记录。</p>
-</li>
-<li><p><strong><code>history</code></strong> 命令允许您以程序员的方式来访问shell中输入的历史命令。这个命令会在标准输出中打印shell中的里面命令。如果我们要搜索历史记录，则可以利用管道将输出结果传递给 <code>grep</code> 进行模式搜索。 例如：<code>history | grep find</code> 会打印包含find子串的命令。</p>
-</li>
-<li><p>对于大多数的shell来说，你可以使用 <strong><code>Ctrl+R</code></strong> 对命令历史记录进行回溯搜索。敲 <code>Ctrl+R</code> 后您可以输入子串来进行匹配，查找历史命令行。</p>
-</li>
-</ul>
-<h3 id="更多"><a href="#更多" class="headerlink" title="更多"></a>更多</h3><p>详见：<a target="_blank" rel="noopener" href="https://missing.csail.mit.edu/">missing semester</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -2622,17 +2621,17 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">12</span>
+          <span class="site-state-item-count">13</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
-        <span class="site-state-item-count">6</span>
+        <span class="site-state-item-count">7</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
-        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-count">3</span>
         <span class="site-state-item-name">标签</span>
       </div>
   </nav>

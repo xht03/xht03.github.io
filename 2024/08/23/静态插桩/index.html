@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"xht03.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":"default"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":true,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="预备知识一段代码，从 .c 源文件到可执行文件经历了4个步骤：  预处理（Preprocessing）：主要处理源代码中以#开始的预编译指令，比如#include、#define 等等。预处理完得到的是.i文件。 编译（Compilation）：编译完成后，得到的是：汇编文件（.s） 汇编（Assembly）：将汇编代码转换成机器可以执行的指令，每一条汇编指令都会对应一条机器指令。汇编完成后，得到">
+<meta property="og:type" content="article">
+<meta property="og:title" content="静态插桩">
+<meta property="og:url" content="http://xht03.github.io/2024/08/23/%E9%9D%99%E6%80%81%E6%8F%92%E6%A1%A9/index.html">
+<meta property="og:site_name" content="延绪的水上书">
+<meta property="og:description" content="预备知识一段代码，从 .c 源文件到可执行文件经历了4个步骤：  预处理（Preprocessing）：主要处理源代码中以#开始的预编译指令，比如#include、#define 等等。预处理完得到的是.i文件。 编译（Compilation）：编译完成后，得到的是：汇编文件（.s） 汇编（Assembly）：将汇编代码转换成机器可以执行的指令，每一条汇编指令都会对应一条机器指令。汇编完成后，得到">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://xht03.github.io/2024/08/23/%E9%9D%99%E6%80%81%E6%8F%92%E6%A1%A9/Users/Keats/Desktop/Erewhon/Yanxu-Blog/source_posts/%E9%9D%99%E6%80%81%E6%8F%92%E6%A1%A9/ELF.png">
+<meta property="og:image" content="http://xht03.github.io/2024/08/23/%E9%9D%99%E6%80%81%E6%8F%92%E6%A1%A9/Users/Keats/Desktop/Erewhon/Yanxu-Blog/source_posts/%E9%9D%99%E6%80%81%E6%8F%92%E6%A1%A9/elf_header.png">
+<meta property="og:image" content="http://xht03.github.io/2024/08/23/%E9%9D%99%E6%80%81%E6%8F%92%E6%A1%A9/Users/Keats/Desktop/Erewhon/Yanxu-Blog/source_posts/%E9%9D%99%E6%80%81%E6%8F%92%E6%A1%A9/sections1.png">
+<meta property="og:image" content="http://xht03.github.io/2024/08/23/%E9%9D%99%E6%80%81%E6%8F%92%E6%A1%A9/Users/Keats/Desktop/Erewhon/Yanxu-Blog/source_posts/%E9%9D%99%E6%80%81%E6%8F%92%E6%A1%A9/Segment.png">
+<meta property="og:image" content="http://xht03.github.io/2024/08/23/%E9%9D%99%E6%80%81%E6%8F%92%E6%A1%A9/Users/Keats/Desktop/Erewhon/Yanxu-Blog/source_posts/%E9%9D%99%E6%80%81%E6%8F%92%E6%A1%A9/shstrtab.png">
+<meta property="article:published_time" content="2024-08-23T03:14:25.000Z">
+<meta property="article:modified_time" content="2024-09-01T02:14:56.839Z">
+<meta property="article:author" content="xht03">
+<meta property="article:tag" content="original">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://xht03.github.io/2024/08/23/%E9%9D%99%E6%80%81%E6%8F%92%E6%A1%A9/Users/Keats/Desktop/Erewhon/Yanxu-Blog/source_posts/%E9%9D%99%E6%80%81%E6%8F%92%E6%A1%A9/ELF.png">
+
+<link rel="canonical" href="http://xht03.github.io/2024/08/23/%E9%9D%99%E6%80%81%E6%8F%92%E6%A1%A9/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>静态插桩 | 延绪的水上书</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">延绪的水上书</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://xht03.github.io/2024/08/23/%E9%9D%99%E6%80%81%E6%8F%92%E6%A1%A9/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="xht03">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="延绪的水上书">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          静态插桩
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2024-08-23 11:14:25" itemprop="dateCreated datePublished" datetime="2024-08-23T11:14:25+08:00">2024-08-23</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2024-09-01 10:14:56" itemprop="dateModified" datetime="2024-09-01T10:14:56+08:00">2024-09-01</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Lee/" itemprop="url" rel="index"><span itemprop="name">Lee</span></a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2024/08/23/%E9%9D%99%E6%80%81%E6%8F%92%E6%A1%A9/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2024/08/23/静态插桩/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h3 id="预备知识"><a href="#预备知识" class="headerlink" title="预备知识"></a>预备知识</h3><p>一段代码，从 <code>.c</code> 源文件到可执行文件经历了4个步骤：</p>
+<ul>
+<li><strong>预处理（Preprocessing）</strong>：主要处理源代码中以<code>#</code>开始的预编译指令，比如<code>#include</code>、<code>#define</code> 等等。预处理完得到的是<code>.i</code>文件。</li>
+<li><strong>编译（Compilation）</strong>：编译完成后，得到的是：汇编文件（<code>.s</code>）</li>
+<li><strong>汇编（Assembly）</strong>：将汇编代码转换成机器可以执行的指令，每一条汇编指令都会对应一条机器指令。汇编完成后，得到的是：可重定向目标文件（<code>.o</code>）。</li>
+<li><strong>链接（Linking）</strong>：通常一份文件会调用其他文件中编写的函数，但当前文件怎么知道去哪里寻找它想调用的函数呢？这就需要链接。链接完成后，得到的是：可执行目标文件。</li>
+</ul>
+<p>其中：可重定向目标文件、可执行目标文件都必须符合<strong>ELF格式（Executable and Linkable Format）</strong>，因此也可称为：<strong>ELF文件</strong>。</p>
+<hr>
+<p>ELF文件包含一下三个部分：</p>
+<ul>
+<li><strong>ELF header</strong></li>
+<li><strong>Sections</strong></li>
+<li><strong>Section header table</strong></li>
+</ul>
+<p>下图是一个 Hello World 可执行程序的 ELF 格式实例。</p>
+<p><img src="/2024/08/23/%E9%9D%99%E6%80%81%E6%8F%92%E6%A1%A9/Users\Keats\Desktop\Erewhon\Yanxu-Blog\source_posts\静态插桩\ELF.png" alt="ELF"></p>
+<p>我们可以通过命令行工具<code>readelf</code>查看 elf 文件。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ readelf -h demo   <span class="comment">#查看elf header</span></span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/08/23/%E9%9D%99%E6%80%81%E6%8F%92%E6%A1%A9/Users\Keats\Desktop\Erewhon\Yanxu-Blog\source_posts\静态插桩\elf_header.png" alt="ELF header"></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ readelf -S demo   <span class="comment">#查看各个section信息</span></span><br></pre></td></tr></table></figure>
+
+<p>  <img src="/2024/08/23/%E9%9D%99%E6%80%81%E6%8F%92%E6%A1%A9/Users\Keats\Desktop\Erewhon\Yanxu-Blog\source_posts\静态插桩\sections1.png" alt="Sections"></p>
+<hr>
+<p>这里容易混淆的是：<strong>ELF Header</strong>、<strong>Program Header</strong>、<strong>Section Header</strong>：</p>
+<ul>
+<li><strong>ELF Header</strong> 是 ELF 文件的文件头，它是文件的起始部分，为加载器和链接器提供必要的信息来处理文件。</li>
+<li><strong>Program Header</strong> 是一个数据结构，它定义了程序如何加载到内存中。每个 <strong>Program Header</strong> 都包含了一个段（<strong>Segment</strong>）的加载信息，比如它的类型、在文件中的偏移量、在内存中的地址、大小等。</li>
+<li><strong>Program Header Table</strong> 是一个由多个 <strong>Program Header</strong> 组成的数组，它按照程序头的顺序排列。<strong>Program Header Table</strong> 通常位于 <strong>ELF Header</strong> 之后，通常在文件的开始部分，这样加载器可以快速地找到并读取它。</li>
+<li><strong>Section Header</strong> 定义了文件中的节（<strong>Section</strong>）的属性和信息。每个节头条目（Section Header Entry）都包含了关于一个特定节的元数据。</li>
+</ul>
+<p>注意：</p>
+<p>Sections 中的第一个 Section（索引为0的section）就是 <strong>Program Header Table</strong>。</p>
+<blockquote>
+<p>以之前图中 ELF 文件为例。</p>
+<p>**ELF Header **占据最开始的64个字节。</p>
+<p>紧接着是<strong>Program Header Table</strong>，总共占据 56 * 13 &#x3D; 728个字节。</p>
+<p>所以真正的第一个section（.interp）开始地址应该是：64 + 728 &#x3D; 792 &#x3D; 0x318。</p>
+</blockquote>
+<hr>
+<p>另外一个容易混淆的是：<strong>节（Section）</strong>、<strong>段（Segment）</strong>。</p>
+<ul>
+<li><p>Section 称为节，是指在汇编源码中经由关键字section或segment修饰、逻辑划分的指令或数据区域，汇编器会将这两个关键字修饰的区域在目标文件中编译成节，也就是说”节”最初诞生于目标文件中。</p>
+</li>
+<li><p>Segment 称为段，是，链接器把目标文件链接成可执行文件，因此段最终诞生于可执行文件中。我们平时所说的可执行程序内存空间中的代码段和数据段就是指的Segment。</p>
+</li>
+</ul>
+<p><img src="/2024/08/23/%E9%9D%99%E6%80%81%E6%8F%92%E6%A1%A9/Users\Keats\Desktop\Erewhon\Yanxu-Blog\source_posts\静态插桩\Segment.png" alt="Section Vs Segment"></p>
+<ul>
+<li>左边是ELF的<strong>链接</strong>视图，可以理解为是<strong>目标文件</strong>的内容布局。</li>
+<li>右边是ELF的<strong>执行</strong>视图，可以理解为<strong>可执行文件</strong>的内容布局。</li>
+</ul>
+<p>注意：目标代码文件的内容是由 <strong>Section</strong> 组成的，而可执行文件的内容是由 <strong>Segment</strong> 组成的。</p>
+<ul>
+<li><p>我们查看汇编程序时，<code>.text</code>，<code>.bss</code>，<code>.data</code> 都指的是 <strong>Section</strong>。目标代码文件中的 <strong>Section</strong> 和 <strong>Section Header Table</strong> 中的条目是一一对应的。<strong>Section</strong> 的信息用于链接器对代码重定位。</p>
+</li>
+<li><p>而文件载入内存执行时，是以 <strong>Segment</strong> 组织的，每个 <strong>Segment</strong> 对应 ELF 文件中 <strong>Program Header Table</strong> 中的一个条目，用来建立可执行文件的进程映像。链接器将目标文件中属性相同的多个 <strong>Section</strong> 合并，从而形成新的可执行文件；合并后的 <strong>Section</strong> 的集合，称为 <strong>Segment</strong>。例如：所有<code>.text</code> <strong>Section</strong> 会被合并成一个新的<code>.text</code> <strong>Segment</strong>。</p>
+</li>
+</ul>
+<p>注意：在目标文件中，<strong>Program Header</strong> 不是必须的，我们用 gcc 生成的目标文件也不包含 <strong>Program Header</strong>。</p>
+<hr>
+<p>在所有Sections中，有一个section比较特殊：<code>.shstrtab</code>。</p>
+<p><img src="/2024/08/23/%E9%9D%99%E6%80%81%E6%8F%92%E6%A1%A9/Users\Keats\Desktop\Erewhon\Yanxu-Blog\source_posts\静态插桩\shstrtab.png" alt="Section Header String Table"></p>
+<blockquote>
+<p>在之前查看 <strong>ELF Header</strong> 的时候，<strong>ELF Header</strong> 就提供了 <code>.shstrtab</code> Section 的索引是多少。</p>
+</blockquote>
+<ul>
+<li><p><strong>节头字符串表</strong>（Section Header String Table，简称SHSTRTAB）是 ELF 文件中的一个特殊 section。它包含所有 section 名称的字符串。</p>
+</li>
+<li><p>每个 <strong>Section Header</strong> 中的<code>sh_name</code>字段是一个索引，指向节头字符串表中的一个位置，该位置存储了该 section 的名称。</p>
+</li>
+<li><p>节头字符串表本质上是一个以空字符（<code>\0</code>）分隔的字符串集合。每个section的名称在这个表中都有一个唯一的偏移量，该偏移量存储在对应section头部的<code>sh_name</code>字段中。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">0x00: &quot;\0&quot;</span><br><span class="line">0x01: &quot;.text\0&quot;</span><br><span class="line">0x07: &quot;.data\0&quot;</span><br><span class="line">0x0D: &quot;.bss\0&quot;</span><br></pre></td></tr></table></figure></li>
+</ul>
+<h3 id="技术路线"><a href="#技术路线" class="headerlink" title="技术路线"></a>技术路线</h3><p>我们希望采用跳板技术实现静态插桩。</p>
+<ul>
+<li><strong>跳板技术</strong>：简单来说，就是通过设置一个中间点（跳板），让程序先跳到这个中间点，然后由这个中间点再跳到最终的目标函数去执行。这个过程就像是设置了一个中转站，让程序先到中转站，再由中转站引导到目的地。</li>
+<li>我们给目标程序<strong>新增加一个section</strong>作为跳板（trampoline）。</li>
+</ul>
+<p>具体分为两个函数：</p>
+<ol>
+<li>创造trampoline空间的函数：Crt_Trpline</li>
+<li>进行二进制插桩的函数： Sinsert</li>
+<li>复原函数：recover</li>
+</ol>
+<h3 id="代码实现"><a href="#代码实现" class="headerlink" title="代码实现"></a>代码实现</h3><p><a target="_blank" rel="noopener" href="https://sourceware.org/binutils/docs/bfd.pdf">bfd.pdf</a></p>
+<p>在BFD（Binary File Descriptor）库中，<code>bfd_make_section</code> 及其相关函数用于创建新的节（section）并将其附加到BFD（Binary File Descriptor）结构中。这些函数提供了不同的选项和功能，以适应不同的使用场景。以下是一些常见的 <code>make section</code> 函数及其区别和功能：</p>
+<ol>
+<li><p><strong><code>bfd_make_section</code></strong></p>
+<ul>
+<li>功能：创建一个新的空节，并将其附加到BFD的节链表中。</li>
+<li>参数：只需要提供BFD和节的名称。</li>
+<li>特点：如果同名节已存在，则不会创建新的节，而是返回现有的节。</li>
+</ul>
+</li>
+<li><p><strong><code>bfd_make_section_anyway</code></strong></p>
+<ul>
+<li>功能：创建一个新的空节，即使同名节已存在，也会创建新的节，并附加到BFD的节链表中。</li>
+<li>参数：提供BFD和节的名称。</li>
+<li>特点：不检查是否已存在同名节，总是创建新的节。</li>
+</ul>
+</li>
+<li><p><strong><code>bfd_make_section_with_flags</code></strong></p>
+<ul>
+<li>功能：创建一个新的节，并为其设置特定的标志（flags）。</li>
+<li>参数：提供BFD、节的名称和要设置的标志。</li>
+<li>特点：允许在创建节时指定节的属性，如是否可加载、是否可执行等。</li>
+</ul>
+</li>
+<li><p><strong><code>bfd_make_section_anyway_with_flags</code></strong></p>
+<ul>
+<li>功能：创建一个新的节，并为其设置特定的标志，即使同名节已存在。</li>
+<li>参数：提供BFD、节的名称和要设置的标志。</li>
+<li>特点：结合了 <code>bfd_make_section_with_flags</code> 和 <code>bfd_make_section_anyway</code> 的功能。</li>
+</ul>
+</li>
+<li><p><strong><code>bfd_make_section_old_way</code></strong></p>
+<ul>
+<li>功能：使用旧方法创建一个新的节。</li>
+<li>参数：只需要提供BFD和节的名称。</li>
+<li>特点：如果同名节已存在，则不会创建新的节，而是返回现有的节。这是较老的API，可能在新版本的BFD中不再推荐使用。</li>
+</ul>
+</li>
+<li><p><strong><code>bfd_set_section_flags</code></strong></p>
+<ul>
+<li>功能：设置现有节的标志。</li>
+<li>参数：提供节和要设置的标志。</li>
+<li>特点：不创建新节，只修改现有节的属性。</li>
+</ul>
+</li>
+<li><p><strong><code>bfd_set_section_size</code></strong></p>
+<ul>
+<li>功能：设置现有节的大小。</li>
+<li>参数：提供节和新的大小。</li>
+<li>特点：不创建新节，只修改现有节的大小。</li>
+</ul>
+</li>
+<li><p><strong><code>bfd_set_section_contents</code></strong></p>
+<ul>
+<li>功能：设置现有节的内容。</li>
+<li>参数：提供BFD、节、数据缓冲区、偏移量和数据大小。</li>
+<li>特点：不创建新节，只修改现有节的内容。</li>
+</ul>
+</li>
+</ol>
+<p>这些函数提供了灵活的方式来创建和管理BFD中的节。选择哪个函数取决于你的具体需求，比如是否需要检查同名节的存在、是否需要设置特定的节属性等。在实际应用中，应根据目标文件格式和操作需求选择合适的函数。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h4 id="如何新增section"><a href="#如何新增section" class="headerlink" title="如何新增section"></a>如何新增section</h4><p>我们主要通过c语言标准库中提供的工具来编辑 elf header。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;elf.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;libelf.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;gelf.h&gt;</span></span></span><br></pre></td></tr></table></figure>
+
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/original/" rel="tag"># original</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/06/21/%E6%95%B0%E6%8D%AE%E5%BA%933-%E7%B4%A2%E5%BC%95/" rel="prev" title="数据库笔记3：Indexing and Hashing">
+      <i class="fa fa-chevron-left"></i> 数据库笔记3：Indexing and Hashing
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/09/05/%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92/" rel="next" title="动态规划">
+      动态规划 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%A2%84%E5%A4%87%E7%9F%A5%E8%AF%86"><span class="nav-number">1.</span> <span class="nav-text">预备知识</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8A%80%E6%9C%AF%E8%B7%AF%E7%BA%BF"><span class="nav-number">2.</span> <span class="nav-text">技术路线</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BB%A3%E7%A0%81%E5%AE%9E%E7%8E%B0"><span class="nav-number">3.</span> <span class="nav-text">代码实现</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%A6%82%E4%BD%95%E6%96%B0%E5%A2%9Esection"><span class="nav-number">3.1.</span> <span class="nav-text">如何新增section</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">xht03</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">13</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+        <span class="site-state-item-count">7</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">xht03</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/pjax/pjax.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+  <script>
+var pjax = new Pjax({
+  selectors: [
+    'head title',
+    '#page-configurations',
+    '.content-wrap',
+    '.post-toc-wrap',
+    '.languages',
+    '#pjax'
+  ],
+  switches: {
+    '.post-toc-wrap': Pjax.switches.innerHTML
+  },
+  analytics: false,
+  cacheBust: false,
+  scrollTo : !CONFIG.bookmark.enable
+});
+
+window.addEventListener('pjax:success', () => {
+  document.querySelectorAll('script[data-pjax], script#page-configurations, #pjax script').forEach(element => {
+    var code = element.text || element.textContent || element.innerHTML || '';
+    var parent = element.parentNode;
+    parent.removeChild(element);
+    var script = document.createElement('script');
+    if (element.id) {
+      script.id = element.id;
+    }
+    if (element.className) {
+      script.className = element.className;
+    }
+    if (element.type) {
+      script.type = element.type;
+    }
+    if (element.src) {
+      script.src = element.src;
+      // Force synchronous loading of peripheral JS.
+      script.async = false;
+    }
+    if (element.dataset.pjax !== undefined) {
+      script.dataset.pjax = '';
+    }
+    if (code !== '') {
+      script.appendChild(document.createTextNode(code));
+    }
+    parent.appendChild(script);
+  });
+  NexT.boot.refresh();
+  // Define Motion Sequence & Bootstrap Motion.
+  if (CONFIG.motion.enable) {
+    NexT.motion.integrator
+      .init()
+      .add(NexT.motion.middleWares.subMenu)
+      .add(NexT.motion.middleWares.postList)
+      .bootstrap();
+  }
+  NexT.utils.updateSidebarPosition();
+});
+</script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <div id="pjax">
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://book-written-on-water.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  var disqus_config = function() {
+    this.page.url = "http://xht03.github.io/2024/08/23/%E9%9D%99%E6%80%81%E6%8F%92%E6%A1%A9/";
+    this.page.identifier = "2024/08/23/静态插桩/";
+    this.page.title = "静态插桩";
+    };
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: disqus_config
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://book-written-on-water.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+    </div>
+</body>
+</html>

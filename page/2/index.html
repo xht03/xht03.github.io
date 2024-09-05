@@ -146,6 +146,261 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://xht03.github.io/2024/02/04/Shell%E7%AE%80%E6%98%8E%E6%95%99%E7%A8%8B/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="xht03">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="延绪的水上书">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/02/04/Shell%E7%AE%80%E6%98%8E%E6%95%99%E7%A8%8B/" class="post-title-link" itemprop="url">Shell简明教程</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2024-02-04 10:49:32 / 修改时间：20:28:07" itemprop="dateCreated datePublished" datetime="2024-02-04T10:49:32+08:00">2024-02-04</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/The-Missing-Semester/" itemprop="url" rel="index"><span itemprop="name">The Missing Semester</span></a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2024/02/04/Shell%E7%AE%80%E6%98%8E%E6%95%99%E7%A8%8B/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2024/02/04/Shell简明教程/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h3 id="shell-使用"><a href="#shell-使用" class="headerlink" title="shell 使用"></a>shell 使用</h3><h4 id="什么是shell"><a href="#什么是shell" class="headerlink" title="什么是shell"></a>什么是shell</h4><p>如今的计算机有着多种多样的交互接口让我们可以进行指令的的输入，如：图像化的用户界面（GUI）、语音输入 、AR&#x2F;VR 。 这些交互接口可以覆盖 80% 的使用场景，但是它们也从根本上限制了你的操作方式——你不能点击一个不存在的按钮或者是用语音输入一个还没有被录入的指令。为了充分利用计算机的能力，我们不得不回到最根本的方式，使用文字接口：Shell。</p>
+<p>shell 通常指的是操作系统提供给用户与内核进行交互的用户接口。<strong>Bourne Again Shell</strong>，简称 <strong>bash</strong>。 这是被最广泛使用的一种 shell，它的语法和其他的 shell 都是类似的。</p>
+<hr>
+<h4 id="shell-大致原理"><a href="#shell-大致原理" class="headerlink" title="shell 大致原理"></a>shell 大致原理</h4><p>shell 基于空格分割命令并进行解析，然后执行第一个单词代表的程序，并将后续的单词作为程序可以访问的参数。如果您希望传递的参数中包含空格（例如一个名为 My Photos 的文件夹），您要么用使用单引号，双引号将其包裹起来，要么使用转义符号 <code>\</code> 进行处理（<code>My\ Photos</code>）。</p>
+<p>类似于 Python 或 Ruby，shell 是一个编程环境，所以它具备变量、条件、循环和函数。当你在 shell 中执行命令时，您实际上是在执行一段 shell 可以解释执行的简短代码。如果你要求 shell 执行某个指令，但是该指令并不是 shell 所了解的编程关键字，那么它会去咨询 <em>环境变量</em> <code>$PATH</code>，它会列出当 shell 接到某条指令时，进行程序搜索的路径。随后它便会在 <code>$PATH</code> 中搜索由 <code>:</code> 所分割的一系列目录，基于名字搜索该程序。当找到该程序时便执行。</p>
+<hr>
+<h4 id="基础指令"><a href="#基础指令" class="headerlink" title="基础指令"></a>基础指令</h4><ul>
+<li><p>查看时间：<code>date</code></p>
+</li>
+<li><p>打印文本或变量：<code>echo</code></p>
+</li>
+<li><p>查看指定目录下所有文件：<code>ls</code></p>
+</li>
+<li><p>查看命令手册：<code>man</code></p>
+<p><em>注意：</em></p>
+<ol>
+<li><em>通常，在执行程序时使用 <code>-h</code> 或 <code>--help</code> 标记可以打印帮助信息，以便了解有哪些可用的标记或选项。</em></li>
+<li><em>如果您想要知道某个命令（程序）怎么用，请试试 <code>man</code> 这个程序。它会接受一个程序名作为参数，然后将它的文档（用户手册）展现给您。</em></li>
+</ol>
+</li>
+</ul>
+<hr>
+<h4 id="在shell中导航"><a href="#在shell中导航" class="headerlink" title="在shell中导航"></a>在shell中导航</h4><ul>
+<li><p>当前工作目录：<code>pwd</code></p>
+</li>
+<li><p>切换目录：<code>cd</code></p>
+</li>
+<li><p>查找命令（程序）的路径：<code>which</code></p>
+<p><em>注意：</em></p>
+<ol>
+<li><em>在 Linux 和 macOS 上，路径使用 <code>/</code> 分割，而在Windows上是 <code>\</code>。路径 <code>/</code> 代表的是系统的根目录，所有的文件夹都包括在这个路径之下；在Windows上每个盘都有一个根目录（例如： <code>C:\</code>）。</em></li>
+<li>*在 Linux 文件系统中，如果某个路径以 <code>/</code> 开头，那么它是一个 <strong>绝对路径</strong>，其他的都是 <strong>相对路径</strong>。相对路径是指相对于当前工作目录的路径。在路径中，<code>.</code> 表示的是当前目录，而 <code>..</code> 表示上级目录：*</li>
+<li><em>如果命令在 <code>PATH</code> 中找不到，<code>which</code> 通常不会输出任何内容。</em></li>
+</ol>
+</li>
+</ul>
+<hr>
+<h4 id="文件操作"><a href="#文件操作" class="headerlink" title="文件操作"></a>文件操作</h4><ul>
+<li>创建空文件：<code>touch</code></li>
+<li>移动文件 或 重命名：<code>mv</code></li>
+<li>拷贝文件：<code>cp</code></li>
+<li>新建文件夹：<code>mkdir</code></li>
+<li>显示文件内容 或 连接文件：<code>cat</code></li>
+<li>删除文件：<code>rm</code></li>
+<li>查看文件末尾内容：<code>tail</code></li>
+</ul>
+<hr>
+<h4 id="重定向"><a href="#重定向" class="headerlink" title="重定向"></a>重定向</h4><p>在 shell 中，程序有两个主要的“<strong>流</strong>”：它们的<strong>输入流</strong>和<strong>输出流</strong>。 当程序尝试读取信息时，它们会从输入流中进行读取，当程序打印信息时，它们会将信息输出到输出流中。 通常，一个程序的输入输出流都是你的终端。也就是，你的键盘作为输入，显示器作为输出。 但是，我们也可以重定向这些流！</p>
+<p>最简单的重定向是 <code>&lt; file</code> 和 <code>&gt; file</code>。这两个命令可以将程序的输入输出流分别重定向到文件：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">(Py) keats@OMEN-Yanxu:~/Avalon$ <span class="built_in">touch</span> hello.txt</span><br><span class="line">(Py) keats@OMEN-Yanxu:~/Avalon$ <span class="built_in">echo</span> <span class="string">&quot;hello world!&quot;</span> &gt; hello.txt</span><br><span class="line">(Py) keats@OMEN-Yanxu:~/Avalon$ <span class="built_in">cat</span> hello.txt</span><br><span class="line">hello world!</span><br></pre></td></tr></table></figure>
+
+<p>你还可以使用 <code>&gt;&gt;</code> 来向一个文件追加内容（<em>将命令的输出追加到文件的末尾，而不是覆盖文件内容</em>）。</p>
+<p>使用<strong>管道（ <em>pipes</em> ）</strong>，我们能够更好的利用文件重定向。 <code>|</code> 操作符允许我们将一个程序的输出和另外一个程序的输入连接起来：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">(Py) keats@OMEN-Yanxu:~/Avalon$ <span class="built_in">ls</span></span><br><span class="line">ICS  IGEM  PJ  Research  vpn.yaml</span><br><span class="line">(Py) keats@OMEN-Yanxu:~/Avalon$ <span class="built_in">ls</span> -l | <span class="built_in">tail</span> -n1</span><br><span class="line">-rw-r--r-- 1 keats keats  504 Jan 26 12:35 vpn.yaml</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h4 id="根用户"><a href="#根用户" class="headerlink" title="根用户"></a>根用户</h4><p>对于大多数的类 Unix 系统，有一类用户是非常特殊的，那就是：<strong>根用户（root user）</strong>。 你应该已经注意到了，在上面的输出结果中，根用户几乎不受任何限制，他可以创建、读取、更新和删除系统中的任何文件。 通常在我们并不会以根用户的身份直接登录系统，因为这样可能会因为某些错误的操作而破坏系统。 取而代之的是我们会在需要的时候使用 <code>sudo</code> 命令。顾名思义，它的作用是让您可以以 su（super user 或 root 的简写）的身份执行一些操作。 当您遇到拒绝访问（permission denied）的错误时，通常是因为此时您必须是根用户才能操作。</p>
+<h3 id="shell-脚本"><a href="#shell-脚本" class="headerlink" title="shell 脚本"></a>shell 脚本</h3><h4 id="什么是-shell-脚本"><a href="#什么是-shell-脚本" class="headerlink" title="什么是 shell 脚本"></a>什么是 shell 脚本</h4><p>shell 脚本是<strong>一系列用 shell 语言编写的命令</strong>，它们按照特定的顺序组织在一个文件中，以执行特定的任务或自动化操作。shell 脚本通常用于执行一系列的命令、条件判断、循环等操作，为用户提供一个方便的方式来批量处理任务。</p>
+<hr>
+<h4 id="变量赋值"><a href="#变量赋值" class="headerlink" title="变量赋值"></a>变量赋值</h4><ul>
+<li><p>为变量赋值：<code>foo=bar</code></p>
+</li>
+<li><p>访问变量中存储的数值： <code>$foo</code></p>
+<p><em>注意：</em></p>
+<ol>
+<li><em><code>foo = bar</code> （使用空格隔开）是不能正确工作的。因为解释器会调用程序<code>foo</code> 并将 <code>=</code> 和 <code>bar</code>作为参数。 总的来说，在shell脚本中使用空格会起到分割参数的作用，有时候可能会造成混淆，请务必多加检查。</em></li>
+<li><em>Bash中的字符串通过<code>&#39;</code> 和 <code>&quot;</code>分隔符来定义，但是它们的含义并不相同。以<code>&#39;</code>定义的字符串为<strong>原义</strong>字符串，其中的变量不会被<strong>转义</strong>，而 <code>&quot;</code>定义的字符串会将变量值进行替换。</em></li>
+</ol>
+</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">(Py) keats@OMEN-Yanxu:~/Avalon$ foo=bar</span><br><span class="line">(Py) keats@OMEN-Yanxu:~/Avalon$ <span class="built_in">echo</span> foo</span><br><span class="line">foo</span><br><span class="line">(Py) keats@OMEN-Yanxu:~/Avalon$ <span class="built_in">echo</span> <span class="variable">$foo</span></span><br><span class="line">bar</span><br><span class="line">(Py) keats@OMEN-Yanxu:~/Avalon$ <span class="built_in">echo</span> <span class="string">&#x27;$foo&#x27;</span></span><br><span class="line"><span class="variable">$foo</span></span><br><span class="line">(Py) keats@OMEN-Yanxu:~/Avalon$ <span class="built_in">echo</span> <span class="string">&quot;<span class="variable">$foo</span>&quot;</span></span><br><span class="line">bar</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h4 id="特殊变量"><a href="#特殊变量" class="headerlink" title="特殊变量"></a>特殊变量</h4><p>和其他大多数的编程语言一样，<code>bash</code>也支持**<code>if</code>, <code>case</code>, <code>while</code> 和 <code>for</code>** 这些控制流关键字。同样地， <code>bash</code> 也支持<strong>函数</strong>，它可以接受参数并基于参数进行操作。下面这个函数是一个例子，它会创建一个文件夹并使用<code>cd</code>进入该文件夹。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="title">mcd</span></span> () &#123;</span><br><span class="line">    <span class="built_in">mkdir</span> -p <span class="string">&quot;<span class="variable">$1</span>&quot;</span></span><br><span class="line">    <span class="built_in">cd</span> <span class="string">&quot;<span class="variable">$1</span>&quot;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>与其他脚本语言不同，bash使用了很多<strong>特殊的变量</strong>来表示参数、错误代码和相关变量。常见的有：</p>
+<ul>
+<li><code>$0</code> - 脚本名</li>
+<li><code>$1</code> 到 <code>$9</code> - 脚本的参数。 <code>$1</code> 是第一个参数，依此类推。</li>
+<li><code>$@</code> - 所有参数</li>
+<li><code>$#</code> - 参数个数</li>
+<li><code>$?</code> - 前一个命令的返回值</li>
+<li><code>$$</code> - 当前脚本的进程识别码</li>
+<li><code>!!</code> - 完整的上一条命令，包括参数。<em>常见应用：当你因为权限不足执行命令失败时，可以使用 <code>sudo !!</code>再尝试一次。</em></li>
+<li><code>$_</code> - 上一条命令的最后一个参数。<em>如果你正在使用的是交互式 shell，你可以通过按下 <code>Esc</code> 之后键入 . 来获取这个值。</em></li>
+</ul>
+<hr>
+<h4 id="输入输出"><a href="#输入输出" class="headerlink" title="输入输出"></a>输入输出</h4><p>一般情况下，每个 Unix&#x2F;Linux 命令运行时都会打开三个文件：</p>
+<ul>
+<li>**标准输入文件(stdin)**：stdin的文件描述符为0，Unix程序默认从stdin读取数据。</li>
+<li>**标准输出文件(stdout)**：stdout 的文件描述符为1，Unix程序默认向stdout输出数据。</li>
+<li>**标准错误文件(stderr)**：stderr的文件描述符为2，Unix程序会向stderr流中写入错误信息。</li>
+</ul>
+<p>默认情况下，<code>command &gt; file</code> 将 stdout 重定向到 file，<code>command &lt; file</code> 将 stdin 重定向到 file。</p>
+<ul>
+<li><p>如果希望 stderr 重定向到 file，可以这样写：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">command</span> 2&gt;file	<span class="comment"># 2表示标准错误文件(stderr)</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p>如果希望将 stdout 和 stderr 合并后重定向到 file，可以这样写：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">command</span> &gt; file 2&gt;&amp;1	<span class="comment"># 2&gt;&amp;1 表示将 标准错误2 重定向到与 标准输出1 相同的位置</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p>如果希望对 stdin 和 stdout 都重定向，可以这样写：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">command</span> &lt; file1 &gt;file2	<span class="comment"># &lt;和&gt;后面是否空格不影响命令执行</span></span><br></pre></td></tr></table></figure></li>
+</ul>
+<hr>
+<h4 id="返回值（退出码）"><a href="#返回值（退出码）" class="headerlink" title="返回值（退出码）"></a>返回值（退出码）</h4><p>命令通常使用 <code>STDOUT</code>来返回输出值，使用<code>STDERR</code> 来返回错误及错误码，便于脚本以更加友好的方式报告错误。 <strong>返回码或退出状态</strong>是脚本&#x2F;命令之间交流执行状态的方式。返回值0表示正常执行，其他所有非0的返回值都表示有错误发生。</p>
+<p>退出码可以搭配 <code>&amp;&amp;</code>（与操作符）和 <code>||</code>（或操作符）使用，用来进行条件判断，决定是否执行其他程序。它们都属于<a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/Short-circuit_evaluation">短路运算符</a>。同一行的多个命令可以用<code>;</code>分隔。程序 <code>true</code> 的返回码永远是<code>0</code>，<code>false</code> 的返回码永远是<code>1</code>。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">(Py) keats@OMEN-Yanxu:~/Avalon$ <span class="literal">false</span> || <span class="built_in">echo</span> <span class="string">&quot;Oops, fail&quot;</span></span><br><span class="line">Oops, fail</span><br><span class="line">(Py) keats@OMEN-Yanxu:~/Avalon$ <span class="literal">true</span> || <span class="built_in">echo</span> <span class="string">&quot;Will not be printed&quot;</span></span><br><span class="line">(Py) keats@OMEN-Yanxu:~/Avalon$ <span class="literal">true</span> &amp;&amp; <span class="built_in">echo</span> <span class="string">&quot;Things went well&quot;</span></span><br><span class="line">Things went well</span><br><span class="line">(Py) keats@OMEN-Yanxu:~/Avalon$ <span class="literal">false</span> &amp;&amp; <span class="built_in">echo</span> <span class="string">&quot;Will not be printed&quot;</span></span><br><span class="line">(Py) keats@OMEN-Yanxu:~/Avalon$ <span class="literal">false</span> ; <span class="built_in">echo</span> <span class="string">&quot;This will always run&quot;</span></span><br><span class="line">This will always run</span><br></pre></td></tr></table></figure>
+
+<p>另一个常见的模式是以变量的形式获取一个命令的输出，这可以通过 <strong>命令替换（command substitution）</strong>实现。下面是一个例子：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">(Py) keats@OMEN-Yanxu:~/Avalon$ <span class="built_in">echo</span> <span class="string">&quot;Starting program at <span class="subst">$(date)</span>&quot;</span></span><br><span class="line">Starting program at Sun Feb  4 16:35:02 CST 2024</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><p>当你通过 <code>$( CMD )</code> 这样的方式来执行<code>CMD</code> 这个命令时，它的输出结果会替换掉 <code>$( CMD )</code> 。</p>
+<p><em>例如，如果执行 <code>for file in $(ls)</code> ，shell首先将调用<code>ls</code> ，然后遍历得到的这些返回值。</em></p>
+</li>
+</ul>
+<p>还有一个冷门的类似特性是 <strong>进程替换（process substitution）</strong>。这在我们希望返回值通过文件而不是STDIN传递时很有用</p>
+<ul>
+<li><code>&lt;( CMD )</code> 会执行 <code>CMD</code> 并将结果输出到一个临时文件中，并将 <code>&lt;( CMD )</code> 替换成临时文件名。。</li>
+</ul>
+<p>  <em>例如， <code>diff &lt;(ls foo) &lt;(ls bar)</code> 会显示文件夹 <code>foo</code> 和 <code>bar</code> 中文件的区别。</em></p>
+<hr>
+<h4 id="通配"><a href="#通配" class="headerlink" title="通配"></a>通配</h4><p>当执行脚本时，我们经常需要提供形式类似的参数。bash使我们可以轻松的实现这一操作，它可以基于文件扩展名展开表达式。这一技术被称为shell的 <strong>通配（globbing）</strong>。</p>
+<ul>
+<li><p><strong>通配符</strong>：当你想要利用通配符进行匹配时，你可以分别使用 <code>?</code> 和 <code>*</code> 来匹配一个或任意个字符。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 对于文件foo, foo1, foo2, foo10 和 bar</span></span><br><span class="line">$ <span class="built_in">rm</span> foo?	<span class="comment"># 删除 foo1 和 foo2</span></span><br><span class="line">$ <span class="built_in">rm</span> foo*	<span class="comment"># 删除除了`bar`之外的所有文件</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p>**花括号<code>&#123;&#125;</code>**：当你有一系列的指令，其中包含一段公共子串时，可以用花括号来自动展开这些命令。这在批量移动或转换文件时非常方便。</p>
+</li>
+</ul>
+<hr>
+<h4 id="shebang"><a href="#shebang" class="headerlink" title="shebang"></a>shebang</h4><p>注意，脚本并不一定只有用 bash 写才能在终端里调用。比如说，这是一段 Python 脚本，作用是将输入的参数倒序输出：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#!/usr/local/bin/python</span></span><br><span class="line"><span class="keyword">import</span> sys</span><br><span class="line"><span class="keyword">for</span> arg <span class="keyword">in</span> <span class="built_in">reversed</span>(sys.argv[<span class="number">1</span>:]):</span><br><span class="line">    <span class="built_in">print</span>(arg)</span><br></pre></td></tr></table></figure>
+
+<p>内核知道去用 python 解释器而不是 shell 命令来运行这段脚本，是因为脚本的开头第一行的 <a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/Shebang_(Unix)">shebang</a>。</p>
+<p>在 <code>shebang</code> 行中使用 <code>env</code> 命令是一种很好的实践，它会利用环境变量中的程序来解析该脚本，这样就提高来您的脚本的可移植性。<code>env</code> 会利用我们第一节讲座中介绍过的<code>PATH</code> 环境变量来进行定位。 例如，此处使用了<code>env</code>的shebang看上去时这样的<code>#!/usr/bin/env python</code>。</p>
+<hr>
+<h4 id="shell-函数-VS-脚本"><a href="#shell-函数-VS-脚本" class="headerlink" title="shell 函数 VS 脚本"></a>shell 函数 VS 脚本</h4><p>初次接触的小伙伴们可能有些疑惑，我们敲进命令行的一条条函数和脚本有什么区别呢？粗略地看，有如下一些不同点：</p>
+<ul>
+<li>函数只能与shell使用相同的语言，脚本可以使用任意语言。因此在脚本中包含 <code>shebang</code> 是很重要的。</li>
+<li>函数仅在定义时被加载，脚本会在每次被执行时加载。这让函数的加载比脚本略快一些，但每次修改函数定义，都要重新加载一次。</li>
+<li>函数会在当前的shell环境中执行，脚本会在单独的进程中执行。因此，函数可以对环境变量进行更改，比如改变当前工作目录，脚本则不行。脚本需要使用 <code>export</code>将环境变量导出，并将值传递给环境变量。</li>
+<li>与其他程序语言一样，函数可以提高代码模块性、代码复用性并创建清晰性的结构。shell脚本中往往也会包含它们自己的函数定义。</li>
+</ul>
+<h3 id="shell-工具"><a href="#shell-工具" class="headerlink" title="shell 工具"></a>shell 工具</h3><h4 id="查看命令如何使用"><a href="#查看命令如何使用" class="headerlink" title="查看命令如何使用"></a>查看命令如何使用</h4><p><code>man</code>命令是手册（manual）的缩写，它提供了命令的用户手册。</p>
+<hr>
+<h4 id="查找文件"><a href="#查找文件" class="headerlink" title="查找文件"></a>查找文件</h4><p>所有的类UNIX系统都包含一个名为 <code>find</code>的工具，它是 shell 上用于查找文件的绝佳工具。<code>find</code>命令会递归地搜索符合条件的文件。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 查找所有名称为src的文件夹</span></span><br><span class="line">$ find . -name src -<span class="built_in">type</span> d</span><br><span class="line"><span class="comment"># 查找前一天修改的所有文件</span></span><br><span class="line">$ find . -mtime -1</span><br></pre></td></tr></table></figure>
+
+<p>除了列出所寻找的文件之外，<code>find</code> 还能对所有查找到的文件进行操作。这能极大地简化一些单调的任务。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 删除全部扩展名为.tmp 的文件</span></span><br><span class="line">$ find . -name <span class="string">&#x27;*.tmp&#x27;</span> -<span class="built_in">exec</span> <span class="built_in">rm</span> &#123;&#125; \;</span><br><span class="line"><span class="comment"># 查找全部的 PNG 文件并将其转换为 JPG</span></span><br><span class="line">$ find . -name <span class="string">&#x27;*.png&#x27;</span> -<span class="built_in">exec</span> convert &#123;&#125; &#123;&#125;.jpg \;w</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h4 id="查看代码"><a href="#查看代码" class="headerlink" title="查看代码"></a>查看代码</h4><p>很多类UNIX的系统都提供了<code>grep</code>命令，它是用于对输入文本进行匹配的通用工具。</p>
+<p><code>grep</code> 有很多选项，这也使它成为一个非常全能的工具。其中我们经常使用的有：</p>
+<ul>
+<li><code>-C</code> ：获取查找结果的上下文（Context）。</li>
+<li><code>-v</code> ：将对结果进行反选（Invert），也就是输出不匹配的结果。</li>
+<li><code>-R</code> ：递归地进入子目录并搜索所有的文本文件。</li>
+</ul>
+<p>举例来说， <code>grep -C 5</code> 会输出匹配结果前后五行。</p>
+<hr>
+<h4 id="查找-shell-命令"><a href="#查找-shell-命令" class="headerlink" title="查找 shell 命令"></a>查找 shell 命令</h4><p>随着你使用shell的时间越来越久，你可能想要找到之前输入过的某条命令。</p>
+<ul>
+<li><p>按<strong>向上的方向键</strong>会显示你使用过的上一条命令，继续按上键则会遍历整个历史记录。</p>
+</li>
+<li><p><strong><code>history</code></strong> 命令允许您以程序员的方式来访问shell中输入的历史命令。这个命令会在标准输出中打印shell中的里面命令。如果我们要搜索历史记录，则可以利用管道将输出结果传递给 <code>grep</code> 进行模式搜索。 例如：<code>history | grep find</code> 会打印包含find子串的命令。</p>
+</li>
+<li><p>对于大多数的shell来说，你可以使用 <strong><code>Ctrl+R</code></strong> 对命令历史记录进行回溯搜索。敲 <code>Ctrl+R</code> 后您可以输入子串来进行匹配，查找历史命令行。</p>
+</li>
+</ul>
+<h3 id="更多"><a href="#更多" class="headerlink" title="更多"></a>更多</h3><p>详见：<a target="_blank" rel="noopener" href="https://missing.csail.mit.edu/">missing semester</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="http://xht03.github.io/2024/02/03/Git%E7%AE%80%E6%98%8E%E6%95%99%E7%A8%8B/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -545,17 +800,17 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">12</span>
+          <span class="site-state-item-count">13</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
-        <span class="site-state-item-count">6</span>
+        <span class="site-state-item-count">7</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
-        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-count">3</span>
         <span class="site-state-item-name">标签</span>
       </div>
   </nav>
