@@ -24,26 +24,26 @@
   <meta name="description" content="引言在实际场景中，数据库并不是完全可靠的。数据库可能在执行某些操作时崩了，导致一系列操作戛然而止。但有很多操作是必须一起执行的，比如银行转账，不能只执行从A账户扣钱，但不继续执行向B账户里加钱，这样会破坏数据一致性。 为了保证数据库在出现故障时，仍能保证数据的正确，我们引入了“事务”。 事务 A transaction is a unit of program execution that  ac">
 <meta property="og:type" content="article">
 <meta property="og:title" content="数据库笔记1：Transaction">
-<meta property="og:url" content="http://xht03.github.io/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/index.html">
+<meta property="og:url" content="http://xht03.github.io/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/index.html">
 <meta property="og:site_name" content="延绪的水上书">
 <meta property="og:description" content="引言在实际场景中，数据库并不是完全可靠的。数据库可能在执行某些操作时崩了，导致一系列操作戛然而止。但有很多操作是必须一起执行的，比如银行转账，不能只执行从A账户扣钱，但不继续执行向B账户里加钱，这样会破坏数据一致性。 为了保证数据库在出现故障时，仍能保证数据的正确，我们引入了“事务”。 事务 A transaction is a unit of program execution that  ac">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="http://xht03.github.io/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/consistent.png">
-<meta property="og:image" content="http://xht03.github.io/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/state.png">
-<meta property="og:image" content="http://xht03.github.io/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/schedule1.png">
-<meta property="og:image" content="http://xht03.github.io/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/schedule3.png">
-<meta property="og:image" content="http://xht03.github.io/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/schedule9.png">
-<meta property="og:image" content="http://xht03.github.io/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/recoverable.png">
-<meta property="og:image" content="http://xht03.github.io/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/cascadeless.png">
-<meta property="article:published_time" content="2024-06-06T11:05:36.000Z">
-<meta property="article:modified_time" content="2024-06-21T13:32:01.956Z">
+<meta property="og:image" content="http://xht03.github.io/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/consistent.png">
+<meta property="og:image" content="http://xht03.github.io/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/state.png">
+<meta property="og:image" content="http://xht03.github.io/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/schedule1.png">
+<meta property="og:image" content="http://xht03.github.io/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/schedule3.png">
+<meta property="og:image" content="http://xht03.github.io/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/schedule9.png">
+<meta property="og:image" content="http://xht03.github.io/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/recoverable.png">
+<meta property="og:image" content="http://xht03.github.io/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/cascadeless.png">
+<meta property="article:published_time" content="2024-06-09T12:44:52.000Z">
+<meta property="article:modified_time" content="2024-09-19T07:06:12.557Z">
 <meta property="article:author" content="xht03">
 <meta property="article:tag" content="original">
 <meta property="article:tag" content="notes">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="http://xht03.github.io/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/consistent.png">
+<meta name="twitter:image" content="http://xht03.github.io/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/consistent.png">
 
-<link rel="canonical" href="http://xht03.github.io/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/">
+<link rel="canonical" href="http://xht03.github.io/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/">
 
 
 <script id="page-configurations">
@@ -161,7 +161,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://xht03.github.io/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/">
+    <link itemprop="mainEntityOfPage" href="http://xht03.github.io/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.gif">
@@ -184,14 +184,14 @@
               </span>
               <span class="post-meta-item-text">发表于</span>
 
-              <time title="创建时间：2024-06-06 19:05:36" itemprop="dateCreated datePublished" datetime="2024-06-06T19:05:36+08:00">2024-06-06</time>
+              <time title="创建时间：2024-06-09 20:44:52" itemprop="dateCreated datePublished" datetime="2024-06-09T20:44:52+08:00">2024-06-09</time>
             </span>
               <span class="post-meta-item">
                 <span class="post-meta-item-icon">
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2024-06-21 21:32:01" itemprop="dateModified" datetime="2024-06-21T21:32:01+08:00">2024-06-21</time>
+                <time title="修改时间：2024-09-19 15:06:12" itemprop="dateModified" datetime="2024-09-19T15:06:12+08:00">2024-09-19</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -212,8 +212,8 @@
       </span>
       <span class="post-meta-item-text">Disqus：</span>
     
-    <a title="disqus" href="/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/#disqus_thread" itemprop="discussionUrl">
-      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2024/06/06/数据库1-事务/" itemprop="commentCount"></span>
+    <a title="disqus" href="/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2024/06/09/数据库1-事务/" itemprop="commentCount"></span>
     </a>
   </span>
   
@@ -244,7 +244,7 @@
 </ul>
 <p>通俗地讲，一致性是指，在仅当前事务执行时（没有事务并发执行），<strong>数据库中的某些不变量要保持一致</strong>。比如银行转账时两个账户的余额之和要保持不变。（英文释义：If a transaction is run atomically in isolation starting  from a consistent database, the database must again be  consistent at the end of the transaction. ）</p>
 <p>但是，像银行转账，先从A账户扣钱，再向B账户里转钱，必然有处于不一致状态的时候。执行一个事务时也是如此。我们必须保证：<strong>不一致状态是不可见的</strong>。这也是为什么要保证原子性——要么全做完，要么回退到全部没做，不能位于中间不一致状态。</p>
-<p><img src="/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/consistent.png" alt="consistency"></p>
+<p><img src="/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/consistent.png" alt="consistency"></p>
 <p>原子性一般这样实现：数据库会记录一个事务对任何数据进行写操作前的旧值。 这些信息被写入一个称为<strong>日志（log）</strong>的文件中。如果事务没有完成其执行，数据库系统会从日志中恢复旧值，使其看起来像事务从未执行过一样。而且日志记录需要发生在事务开始修改数据库之前（log records need to be written to stable storage before any  changes are made to the database on disk.）</p>
 <p>诚然，事务序列运行（serially）是更容易实现的，但多个事务的并发运行能显著地提升性能，就像“一个人干活 Vs 一群人同时干活”：</p>
 <ul>
@@ -266,7 +266,7 @@
 <li>Aborted：在事务被回滚（roll back）且数据库恢复到事务开始之前的状态后，事务进入中止状态。</li>
 <li>Committed：在当前事务成功完成执行后，事务进入该状态。</li>
 </ul>
-<p><img src="/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/state.png" alt="states"></p>
+<p><img src="/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/state.png" alt="states"></p>
 <p>特别地，我们需要小心：可观察的外部写操作（比如写入用户的屏幕，一旦发生，就不能撤销）。大多数系统允许这种写操作仅在事务进入Committed状态后才进行。</p>
 <h3 id="调度"><a href="#调度" class="headerlink" title="调度"></a>调度</h3><p><strong>调度（Schedule）</strong>是指一系列指令，并指定并发事务的指令在系统中执行的时间顺序。</p>
 <p>且一个调度要满足：</p>
@@ -277,14 +277,14 @@
 <li>未成功完成执行的事务，其最后一个语句将是abort指令。</li>
 </ul>
 <p>举一个例子：T1事务是从A转账50元到B，T2事务是A转账10%到B。下图的调度1是一个<strong>序列化的（serial）</strong>调度。</p>
-<p><img src="/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/schedule1.png" alt="schedule1"></p>
+<p><img src="/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/schedule1.png" alt="schedule1"></p>
 <hr>
 <h4 id="可序列化"><a href="#可序列化" class="headerlink" title="可序列化"></a>可序列化</h4><blockquote>
 <p>等价（equivalent）有很多种，因此对应的可序列化（Serializable）也有多种。这里我们指的都是冲突等价和冲突可序列化。</p>
 </blockquote>
 <p>如果一个调度是等价于一个序列调度，则称为<strong>可序列化的（serializable）</strong>。所谓等价，通俗地讲，则是两个调度的最终结果相同。之后我们会给出严格定义。</p>
 <p>下图中，调度3与调度1等价，是可序列化的调度。</p>
-<p><img src="/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/schedule3.png" alt="schedule3"></p>
+<p><img src="/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/schedule3.png" alt="schedule3"></p>
 <p>我们只关心read和write两类操作，特别是它们执行的先后顺序，忽略其他类型的操作。大多数时候出问题都是因为：最新值还未写入数据库，而另一事务已经提前读取或写入了数据。但需要指出的是：可能存在两个调度，它们产生相同的结果，但它们不是冲突等价的（相当于是“充分条件，但不必要”）。</p>
 <p>我们考虑调度 S 中的两个连续的指令 I 、 J 。</p>
 <p>如果 I 、 J 分别作用于不同的数据，那么它们的先后顺序不影响数据结果，怎么样都可以，不冲突。</p>
@@ -308,12 +308,12 @@
 </blockquote>
 <p>到目前为止，我们都在假定事务不会失败的情况下讨论，但实际情况是事务失败总会发生。为了保证原子性，我们就必须撤销该事务的所有操作。但如果T<sub>i</sub> 失败了，且 T<sub>j</sub> 依赖于 T<sub>i</sub> ，那么我们需要也将 T<sub>j</sub> 撤销。 </p>
 <p>例如下图中，调度9中的T<sub>7</sub>使用了T<sub>6</sub>写入的A值，如果T<sub>6</sub>结果出问题，则T<sub>7</sub>结果也有问题。所以，T<sub>7</sub>依赖于T<sub>6 </sub> 。</p>
-<p><img src="/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/schedule9.png" alt="schedule9"></p>
+<p><img src="/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/schedule9.png" alt="schedule9"></p>
 <p><strong>可恢复调度（recoverable schedule）</strong>应当满足：</p>
 <ul>
 <li>如果一个事务 T<sub>j</sub> 读取了之前由事务 T<sub>i</sub> 写入的数据项，那么事务 T<sub>i</sub> 将在事务 T<sub>j</sub> 提交之前提交。</li>
 </ul>
-<p><img src="/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/recoverable.png" alt="recoverable"></p>
+<p><img src="/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/recoverable.png" alt="recoverable"></p>
 <p>可恢复性确保了：如果一个事务要用其他事务的数据项，则一定用的是最终数据，而不是过程中的数据。这样避免了一个数据出错导致一系列数据出错（级联效应）。</p>
 <hr>
 <h4 id="无级联的"><a href="#无级联的" class="headerlink" title="无级联的"></a>无级联的</h4><p>像上面所所的，一个事务的失败可能触发一系列事务的回滚。这种情况称为<strong>级联回滚（cascading rollback）</strong>。这样的情况会大大降低数据库的性能。</p>
@@ -321,7 +321,7 @@
 <ul>
 <li>任意一对事务 T<sub>i</sub> 和 T<sub>j</sub> ，如果一个事务 T<sub>j</sub> 读取了之前由事务 T<sub>i</sub> 写入的数据项，那么事务 T<sub>i</sub> 将在事务 T<sub>j</sub> 提交之前提交。</li>
 </ul>
-<p><img src="/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/cascadeless.png" alt="cascadeless"></p>
+<p><img src="/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/cascadeless.png" alt="cascadeless"></p>
 <p>不难发现，无级联则可恢复。</p>
 
     </div>
@@ -342,12 +342,12 @@
         
     <div class="post-nav">
       <div class="post-nav-item">
-    <a href="/2024/04/16/HTML%E7%AE%80%E6%98%8E%E6%95%99%E7%A8%8B/" rel="prev" title="HTML简明教程">
-      <i class="fa fa-chevron-left"></i> HTML简明教程
+    <a href="/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AE%9E%E9%AA%8C/" rel="prev" title="Block Nested Loop Join">
+      <i class="fa fa-chevron-left"></i> Block Nested Loop Join
     </a></div>
       <div class="post-nav-item">
-    <a href="/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AE%9E%E9%AA%8C/" rel="next" title="Block Nested Loop Join">
-      Block Nested Loop Join <i class="fa fa-chevron-right"></i>
+    <a href="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%932-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/" rel="next" title="数据库笔记2：Concurrency Control">
+      数据库笔记2：Concurrency Control <i class="fa fa-chevron-right"></i>
     </a></div>
     </div>
       </footer>
@@ -428,7 +428,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">14</span>
+          <span class="site-state-item-count">16</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
@@ -600,8 +600,8 @@ window.addEventListener('pjax:success', () => {
 </script>
 <script>
   var disqus_config = function() {
-    this.page.url = "http://xht03.github.io/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/";
-    this.page.identifier = "2024/06/06/数据库1-事务/";
+    this.page.url = "http://xht03.github.io/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/";
+    this.page.identifier = "2024/06/09/数据库1-事务/";
     this.page.title = "数据库笔记1：Transaction";
     };
   NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {

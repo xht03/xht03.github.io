@@ -24,21 +24,21 @@
   <meta name="description" content="引言在数据库中，join 是经常使用的操作，但其工作量也可能是很大的。那么如何高效地完成 join 操作呢？ 这篇 blog 将介绍：  常见的 join 实现方式 如何在 Postgresql 源代码中实现 block nested loop join  常见 join 算法Simple Nested-Loop Join简单来说，Simple Nested-Loop Join 就是一个双层 fo">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Block Nested Loop Join">
-<meta property="og:url" content="http://xht03.github.io/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AE%9E%E9%AA%8C/index.html">
+<meta property="og:url" content="http://xht03.github.io/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AE%9E%E9%AA%8C/index.html">
 <meta property="og:site_name" content="延绪的水上书">
 <meta property="og:description" content="引言在数据库中，join 是经常使用的操作，但其工作量也可能是很大的。那么如何高效地完成 join 操作呢？ 这篇 blog 将介绍：  常见的 join 实现方式 如何在 Postgresql 源代码中实现 block nested loop join  常见 join 算法Simple Nested-Loop Join简单来说，Simple Nested-Loop Join 就是一个双层 fo">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="http://xht03.github.io/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AE%9E%E9%AA%8C/Index-Nested-Loop-Join.jpg">
-<meta property="og:image" content="http://xht03.github.io/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AE%9E%E9%AA%8C/Block-Nested-Loop-Join.jpg">
-<meta property="og:image" content="http://xht03.github.io/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AE%9E%E9%AA%8C/select.png">
-<meta property="og:image" content="http://xht03.github.io/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AE%9E%E9%AA%8C/1024.png">
-<meta property="article:published_time" content="2024-06-09T12:44:52.000Z">
-<meta property="article:modified_time" content="2024-06-10T09:30:30.474Z">
+<meta property="og:image" content="http://xht03.github.io/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AE%9E%E9%AA%8C/Index-Nested-Loop-Join.jpg">
+<meta property="og:image" content="http://xht03.github.io/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AE%9E%E9%AA%8C/Block-Nested-Loop-Join.jpg">
+<meta property="og:image" content="http://xht03.github.io/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AE%9E%E9%AA%8C/select.png">
+<meta property="og:image" content="http://xht03.github.io/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AE%9E%E9%AA%8C/1024.png">
+<meta property="article:published_time" content="2024-06-06T11:05:36.000Z">
+<meta property="article:modified_time" content="2024-09-19T07:06:14.383Z">
 <meta property="article:author" content="xht03">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="http://xht03.github.io/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AE%9E%E9%AA%8C/Index-Nested-Loop-Join.jpg">
+<meta name="twitter:image" content="http://xht03.github.io/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AE%9E%E9%AA%8C/Index-Nested-Loop-Join.jpg">
 
-<link rel="canonical" href="http://xht03.github.io/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AE%9E%E9%AA%8C/">
+<link rel="canonical" href="http://xht03.github.io/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AE%9E%E9%AA%8C/">
 
 
 <script id="page-configurations">
@@ -156,7 +156,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://xht03.github.io/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AE%9E%E9%AA%8C/">
+    <link itemprop="mainEntityOfPage" href="http://xht03.github.io/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AE%9E%E9%AA%8C/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.gif">
@@ -179,14 +179,14 @@
               </span>
               <span class="post-meta-item-text">发表于</span>
 
-              <time title="创建时间：2024-06-09 20:44:52" itemprop="dateCreated datePublished" datetime="2024-06-09T20:44:52+08:00">2024-06-09</time>
+              <time title="创建时间：2024-06-06 19:05:36" itemprop="dateCreated datePublished" datetime="2024-06-06T19:05:36+08:00">2024-06-06</time>
             </span>
               <span class="post-meta-item">
                 <span class="post-meta-item-icon">
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2024-06-10 17:30:30" itemprop="dateModified" datetime="2024-06-10T17:30:30+08:00">2024-06-10</time>
+                <time title="修改时间：2024-09-19 15:06:14" itemprop="dateModified" datetime="2024-09-19T15:06:14+08:00">2024-09-19</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -207,8 +207,8 @@
       </span>
       <span class="post-meta-item-text">Disqus：</span>
     
-    <a title="disqus" href="/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AE%9E%E9%AA%8C/#disqus_thread" itemprop="discussionUrl">
-      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2024/06/09/数据库实验/" itemprop="commentCount"></span>
+    <a title="disqus" href="/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AE%9E%E9%AA%8C/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2024/06/06/数据库实验/" itemprop="commentCount"></span>
     </a>
   </span>
   
@@ -239,12 +239,12 @@
 <hr>
 <h4 id="Index-Nested-Loop-Join"><a href="#Index-Nested-Loop-Join" class="headerlink" title="Index Nested-Loop Join"></a>Index Nested-Loop Join</h4><p>Index Nested-Loop Join 的优化思路主要是：减少内层表数据的匹配次数。</p>
 <p>简单来说，Index Nested-Loop Join 就是通过外层表匹配条件，直接与内层表索引进行匹配，避免和内层表的每条记录去进行比较，这样极大的减少了对内层表的匹配次数，从原来的 “匹配次数&#x3D;外层表行数 * 内层表行数”，变成了 “外层表的行数 * 内层表索引的高度”，极大的提升了 join 的性能。</p>
-<p><img src="/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AE%9E%E9%AA%8C/Index-Nested-Loop-Join.jpg" alt="Index Nested-Loop Join"></p>
+<p><img src="/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AE%9E%E9%AA%8C/Index-Nested-Loop-Join.jpg" alt="Index Nested-Loop Join"></p>
 <p><strong>但是</strong>，Index Nested-Loop Join 算法的前提是：匹配的字段必须建立了索引。</p>
 <hr>
 <h4 id="Block-Nested-Loop-join"><a href="#Block-Nested-Loop-join" class="headerlink" title="Block Nested-Loop join"></a>Block Nested-Loop join</h4><p>Block Nested-Loop Join 其优化思路是：减少内层表的扫表次数。</p>
 <p>Block Nested-Loop Join 算法意在通过一次性缓存外层表的多条数据，以此来减少内层表的扫表次数，从而达到提升性能的目的。</p>
-<p><img src="/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AE%9E%E9%AA%8C/Block-Nested-Loop-Join.jpg" alt="Block Nested-Loop Join"></p>
+<p><img src="/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AE%9E%E9%AA%8C/Block-Nested-Loop-Join.jpg" alt="Block Nested-Loop Join"></p>
 <p>如果无法使用 Index Nested-Loop Join 时候，一般都会使用 Block Nested-Loop Join 算法。</p>
 <h3 id="PostgreSQL-实验"><a href="#PostgreSQL-实验" class="headerlink" title="PostgreSQL 实验"></a>PostgreSQL 实验</h3><h4 id="准备工作"><a href="#准备工作" class="headerlink" title="准备工作"></a>准备工作</h4><ol>
 <li><p>下载 postgresql 源代码：</p>
@@ -274,7 +274,7 @@
 <li><p>加载测试数据：</p>
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">postgres<span class="operator">=</span># <span class="keyword">CREATE</span> DATABASE similarity;</span><br><span class="line">postgres<span class="operator">-</span># \c similarity</span><br><span class="line">postgres<span class="operator">-</span># \i <span class="operator">/</span>home<span class="operator">/</span>[guanz<span class="operator">/</span>data<span class="operator">/</span>]similarity_data.sql</span><br></pre></td></tr></table></figure>
 
-<p><img src="/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AE%9E%E9%AA%8C/select.png" alt="select_example"></p>
+<p><img src="/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AE%9E%E9%AA%8C/select.png" alt="select_example"></p>
 </li>
 </ol>
 <hr>
@@ -328,7 +328,7 @@
 </blockquote>
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> <span class="built_in">count</span>(<span class="operator">*</span>) <span class="keyword">FROM</span> restaurantaddress ra, restaurantphone rp <span class="keyword">WHERE</span> ra.name <span class="operator">=</span> rp.name;</span><br></pre></td></tr></table></figure>
 
-<p><img src="/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AE%9E%E9%AA%8C/1024.png" alt="Timing"></p>
+<p><img src="/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AE%9E%E9%AA%8C/1024.png" alt="Timing"></p>
 <table>
 <thead>
 <tr>
@@ -394,12 +394,12 @@
         
     <div class="post-nav">
       <div class="post-nav-item">
-    <a href="/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/" rel="prev" title="数据库笔记1：Transaction">
-      <i class="fa fa-chevron-left"></i> 数据库笔记1：Transaction
+    <a href="/2024/04/16/HTML%E7%AE%80%E6%98%8E%E6%95%99%E7%A8%8B/" rel="prev" title="HTML简明教程">
+      <i class="fa fa-chevron-left"></i> HTML简明教程
     </a></div>
       <div class="post-nav-item">
-    <a href="/2024/06/13/%E6%95%B0%E6%8D%AE%E5%BA%932-%E5%B9%B6%E8%A1%8C%E6%8E%A7%E5%88%B6/" rel="next" title="数据库笔记2：Concurrency Control">
-      数据库笔记2：Concurrency Control <i class="fa fa-chevron-right"></i>
+    <a href="/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%931-%E4%BA%8B%E5%8A%A1/" rel="next" title="数据库笔记1：Transaction">
+      数据库笔记1：Transaction <i class="fa fa-chevron-right"></i>
     </a></div>
     </div>
       </footer>
@@ -480,7 +480,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">14</span>
+          <span class="site-state-item-count">16</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
@@ -652,8 +652,8 @@ window.addEventListener('pjax:success', () => {
 </script>
 <script>
   var disqus_config = function() {
-    this.page.url = "http://xht03.github.io/2024/06/09/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AE%9E%E9%AA%8C/";
-    this.page.identifier = "2024/06/09/数据库实验/";
+    this.page.url = "http://xht03.github.io/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AE%9E%E9%AA%8C/";
+    this.page.identifier = "2024/06/06/数据库实验/";
     this.page.title = "Block Nested Loop Join";
     };
   NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
