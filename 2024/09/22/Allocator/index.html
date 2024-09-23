@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"xht03.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":"default"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":true,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="技术路线Allocator操作系统位于硬件和软件之间，为用户程序提供底层硬件资源的抽象。操作系统提供必要的系统调用（system calls）。从而，用户程序不必再考虑如何使用硬件，而是通过这些 system calls 来调用硬件资源。 ![操作系统在计算机中的位置](Position of OS in A Computer System.png) 当我们编写 c 语言程序时，我们可以直接通过">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Allocator">
+<meta property="og:url" content="http://xht03.github.io/2024/09/22/Allocator/index.html">
+<meta property="og:site_name" content="延绪的水上书">
+<meta property="og:description" content="技术路线Allocator操作系统位于硬件和软件之间，为用户程序提供底层硬件资源的抽象。操作系统提供必要的系统调用（system calls）。从而，用户程序不必再考虑如何使用硬件，而是通过这些 system calls 来调用硬件资源。 ![操作系统在计算机中的位置](Position of OS in A Computer System.png) 当我们编写 c 语言程序时，我们可以直接通过">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://xht03.github.io/2024/09/22/Allocator/fragmentation.png">
+<meta property="og:image" content="http://xht03.github.io/2024/09/22/Allocator/freelist.png">
+<meta property="og:image" content="http://xht03.github.io/2024/09/22/Allocator/allocated.png">
+<meta property="og:image" content="http://xht03.github.io/2024/09/22/Allocator/free.png">
+<meta property="og:image" content="http://xht03.github.io/2024/09/22/Allocator/pusu.png">
+<meta property="og:image" content="http://xht03.github.io/2024/09/22/Allocator/figure.png">
+<meta property="og:image" content="http://xht03.github.io/2024/09/22/Allocator/structure.png">
+<meta property="article:published_time" content="2024-09-22T08:56:42.000Z">
+<meta property="article:modified_time" content="2024-09-23T14:29:22.649Z">
+<meta property="article:author" content="xht03">
+<meta property="article:tag" content="original">
+<meta property="article:tag" content="labs">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://xht03.github.io/2024/09/22/Allocator/fragmentation.png">
+
+<link rel="canonical" href="http://xht03.github.io/2024/09/22/Allocator/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>Allocator | 延绪的水上书</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">延绪的水上书</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://xht03.github.io/2024/09/22/Allocator/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="xht03">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="延绪的水上书">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Allocator
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2024-09-22 16:56:42" itemprop="dateCreated datePublished" datetime="2024-09-22T16:56:42+08:00">2024-09-22</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2024-09-23 22:29:22" itemprop="dateModified" datetime="2024-09-23T22:29:22+08:00">2024-09-23</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Operating-System/" itemprop="url" rel="index"><span itemprop="name">Operating System</span></a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2024/09/22/Allocator/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2024/09/22/Allocator/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h3 id="技术路线"><a href="#技术路线" class="headerlink" title="技术路线"></a>技术路线</h3><h4 id="Allocator"><a href="#Allocator" class="headerlink" title="Allocator"></a>Allocator</h4><p>操作系统位于硬件和软件之间，为用户程序提供底层硬件资源的抽象。操作系统提供必要的<strong>系统调用（system calls）</strong>。从而，用户程序不必再考虑如何使用硬件，而是通过这些 <strong>system calls</strong> 来调用硬件资源。</p>
+<p>![操作系统在计算机中的位置](Position of OS in A Computer System.png)</p>
+<p>当我们编写 c 语言程序时，我们可以直接通过 <code>malloc()</code> 和 <code>free()</code> 函数，简洁地申请和释放内存空间。但是 <code>malloc()</code> 和 <code>free()</code> 实际上并没有申请内存的权限，而是请操作系统的<strong>内核（kernel）</strong>帮忙。<strong>kernel</strong> 将<code>malloc()</code>所需的内存分配好并给它。所以，真正负责分配内存空间的是内核的<strong>allocator（分配器）</strong>。</p>
+<p><strong>allocator（分配器）</strong>是一种用于管理内存资源的机制。它负责在操作系统与应用程序之间调度和分配内存。内存分配器通常与动态内存管理有关，允许程序在运行时申请和释放内存。</p>
+<p>具象的说：<strong>allocator就是负责内存分配的系统调用函数</strong>。</p>
+<p>我们希望实现4个系统调用函数：</p>
+<ul>
+<li><code>void kinit()</code>：初始化内存空间</li>
+<li><code>void* kalloc_page()</code>：分配新的页</li>
+<li><code>void kfree_page(void* p)</code>：释放页</li>
+<li><code>void* kalloc(unsigned long long size)</code>：分配指定大小的内存块</li>
+<li><code>void kfree(void* ptr)</code>：释放指定的内存块</li>
+</ul>
+<blockquote>
+<p>请注意<code>kfree()</code>、<code>kfree_page()</code>接口的隐含意义：在释放空间时，用户不需告知库这块空间的大小。因此，在只传入一个指针的情况下，<strong>allocator</strong>必须能够弄清楚这块内存的大小。</p>
+</blockquote>
+<hr>
+<h4 id="Free-space-management"><a href="#Free-space-management" class="headerlink" title="Free-space management"></a>Free-space management</h4><ul>
+<li><p>如果需要管理的空间被划分为固定大小的单元，就很容易。</p>
+<blockquote>
+<p>就像：内存空间按<strong>页（Page）</strong>划分，内存由若干页组成。一页通常为4KB（4096 bytes）。</p>
+</blockquote>
+</li>
+<li><p>如果要管理的空闲空间由大小不同的单元构成，管理就变得困难而有趣。</p>
+<blockquote>
+<p>这种情况出现在：用户级的内存分配库，如<code>malloc()</code>和<code>free()</code>，或者操作系统用分段（segmentation）的方式实现虚拟内存。</p>
+</blockquote>
+</li>
+</ul>
+<p>对于第二种情况，出现了<strong>外部碎片（external fragmentation）</strong>的问题：空闲空间被分割成不同大小的小块，成为碎片，后续的请求可能失败，因为没有一块足够大的连续空闲空间，即使这时总的空闲空间超出了请求的大小。</p>
+<p>例如在下图中，全部可用空闲空间是60字节，但被切成两个20字节大小的碎片，导致一个25字节的分配请求失败。</p>
+<p>我们主要关心的是<strong>外部碎片</strong>。但是，分配程序也可能有<strong>内部碎片（internal fragmentation）</strong>的问题。如果分配程序给出的内存块超出请求的大小，在这种块中超出请求的空间（因此而未使用）就被认为是内部碎片（因为浪费发生在已分配单元的内部），这是另一种形式的空间浪费。</p>
+<p>但是，简单起见，这里主要考虑外部碎片。</p>
+<p><img src="/2024/09/22/Allocator/fragmentation.png" alt="外部碎片&amp;内部碎片"></p>
+<hr>
+<h4 id="Mechanism"><a href="#Mechanism" class="headerlink" title="Mechanism"></a>Mechanism</h4><p><strong>allocator</strong>管理的空间由于历史原因被称为<strong>堆（heap）</strong>，在堆上管理空闲空间的数据结构通常称为<strong>空闲列表（free list）</strong>。该结构包含了管理内存区域中所有空闲块的引用（也就是：地址）。当然，该数据结构不一定真的是列表，而只是某种可以追踪空闲空间的数据结构。</p>
+<p>我们先<strong>以页为单位</strong>讨论。</p>
+<p><code>freelist</code>本质上是一个指针，指向第一个空闲页的开始地址。每个空闲页开头存放一个指针<code>run</code>，指向下一个空闲页。最后一个空闲页的<code>run</code>指针指向<code>NULL</code>。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 空闲物理页节点</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">run</span> &#123;</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">run</span>* <span class="title">next</span>;</span></span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 空闲物理页的链表（的头节点）</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">    SpinLock lock;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">run</span>* <span class="title">freelist</span>;</span></span><br><span class="line">&#125; kmem;</span><br></pre></td></tr></table></figure>
+
+<p>当<strong>allocator</strong>初始化时：allocator本应该将所有物理内存分页，存进<code>freelist</code>中。但是由于物理地址刚开始处存放着内核代码，所以allocator会<strong>把内核代码结束处以后的所有地址空间分页</strong>。</p>
+<p><img src="/2024/09/22/Allocator/freelist.png" alt="free list"></p>
+<p>当用户程序向<strong>allocator</strong>申请page时：<strong>allocator</strong>返回<code>freelist</code>，也就是将<code>freelist</code>指向的第一个page分配给它。然后<code>freelist = run1</code>，也就是使<code>freelist</code>指向下一个空闲页。如此，第一个页“page1”就被分配给用户程序了。需要注意的是：allocator不关心已分配的页，已分配的页由各个申请的用户程序管理。且已分配的页不用再维护<code>run</code>指针，所以整页都是可以使用的（只有空闲页才需要在页头写上<code>run</code>指针）。</p>
+<p><img src="/2024/09/22/Allocator/allocated.png" alt="allocate a page"></p>
+<p>当用户程序向<strong>allocator</strong>释放page时：allocator将返还的page添加到当前链表的第一个，也就是：<code>freelist</code>&#x3D;被释放的页的地址。然后：被释放页的<code>run</code>指针&#x3D;原先<code>freelist</code>的值。</p>
+<p><img src="/2024/09/22/Allocator/free.png" alt="free a page"></p>
+<hr>
+<p>以上，我们都是以页为单位，讨论内存分配。但是申请的内存可能很小，远远不足一页。</p>
+<p>最朴素的想法就是：我们需要把一页的内存，按不同大小需求，划分成不同小块。</p>
+<ul>
+<li><p><strong>已分配的内存块</strong>：</p>
+<p>我们需要保证分配出去的内存能被回收。由于<code>void kfree(void* ptr)</code>函数参数只告诉了地址指针，并没有告诉大小。所以每个内存块需要存储其大小<code>size</code>和一些必要信息<code>magic</code>，即每个内存块都需要有一个<strong>头部（header）</strong>。如此，当<code>kfree()</code>时：我们读取<code>ptr</code>指向处的往前若干字节就能知道需要释放的内存空间。</p>
+</li>
+<li><p><strong>未分配的空间</strong>：</p>
+<p>类似页于与页之间的<code>freelist</code>，我们也会在页内维护一个这样的<code>freelist</code>。</p>
+</li>
+</ul>
+<p><img src="/2024/09/22/Allocator/pusu.png" alt="内存块结构"></p>
+<p><img src="/2024/09/22/Allocator/figure.png" alt="一次分配后的页"></p>
+<p>但是，如此分配内存空间后，即便使用过的内存块都被释放，<strong>空闲列表里也是一串串大小不一的内存碎片</strong>。而且它们在链表里的顺序是随机的，并不是按照地址从小到大排列的，由它们被用户程序释放的顺序所决定。</p>
+<p>之所以会这样，是因为：我们忘了<strong>合并（coalesce）列表项</strong>，虽然整个内存空间是空闲的，但却被逐渐分成了小块，因此形成了碎片化的内存空间。</p>
+<hr>
+<p>事已至此，那如何在内存池（<code>freelist</code>中的空闲内存块）中找到符合要求的内存块呢？且我们希望能保证：<strong>快速</strong>和<strong>碎片最小化</strong>。</p>
+<p>常见的内存分配算法：</p>
+<ol>
+<li><strong>首次适配（First-fit）</strong>：在内存池中找到第一个满足需求的空闲块并分配。</li>
+<li><strong>最佳适配（Best-fit）</strong>：寻找最接近所需大小的空闲块进行分配，以减少剩余的空闲空间。</li>
+<li><strong>最坏适配（Worst-fit）</strong>：选择最大的空闲块分配，保留较大的剩余空间。</li>
+<li><strong>快速适配（Quick-fit）</strong>：预先分配若干种常用大小的内存块，减少分配和释放的时间。</li>
+</ol>
+<hr>
+<h4 id="Segregated-list"><a href="#Segregated-list" class="headerlink" title="Segregated list"></a>Segregated list</h4><p>为了解决内存碎片化的问题，我们采用<strong>分离空闲列表（segregated list）</strong>，也就是：<strong>厚块分配程序（slab allocator）</strong>。</p>
+<p>基本想法很简单：如果某个应用程序经常申请一种（或几种）大小的内存空间，那就用一个独立的列表，只管理这样大小的对象。其他大小的请求都一给更通用的内存分配程序。</p>
+<p>首先我们介绍基本概念：</p>
+<ul>
+<li><p><strong>Cache（缓存）</strong>：SLAB 分配器为特定类型的对象创建缓存，缓存包含多个对象，这些对象的大小是固定的。缓存是预分配的内存块的集合，便于频繁创建和销毁相同类型的对象。</p>
+</li>
+<li><p><strong>Slab（厚块）</strong>：Slab 是 cache 中的组成单元，每个 cache 包含多个 Slab。Slab 是一组预分配的内存块，包含了若干个固定大小的对象块（即 <strong>object</strong>），用于保存对象。一个 Slab 可以是空闲的、部分使用的或者完全使用的。Slab 通过内存池预先分配内存，以便快速提供给请求的对象。</p>
+</li>
+<li><p><strong>Object（对象）</strong>：分配器管理的最小内存单元或内存块，被称为 object。每个 object 是一块固定大小的内存，用来存储具体的数据结构或对象。通过 Slab allocator，内存被分配为一个个 Slab，而 Slab 中则由若干个相同大小的 object 组成。</p>
+</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> NUM_CACHE 10    <span class="comment">// 每个cache的对象大小：8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 厚块节点（25个字节）</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">Slab</span> &#123;</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">Slab</span>* <span class="title">next</span>;</span></span><br><span class="line">    <span class="type">void</span>* free_list;    <span class="comment">// 空闲对象的链表</span></span><br><span class="line">    usize free_count;     <span class="comment">// 空闲对象的数量</span></span><br><span class="line">    SpinLock lock;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 厚块链表</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">Cache</span> &#123;</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">Slab</span>* <span class="title">slabs</span>;</span></span><br><span class="line">    usize slab_count; <span class="comment">// slab的数量</span></span><br><span class="line">    usize obj_size;   <span class="comment">// 每个对象的大小（划分成几个字节的块）</span></span><br><span class="line">&#125; cache[NUM_CACHE];</span><br></pre></td></tr></table></figure>
+
+<p>具体来说：</p>
+<ol>
+<li>在内核启动时，它为可能频繁请求的内核对象创建一些<strong>缓存</strong>。这些的对象缓存每个分离了特定大小的空闲列表，因此能够很快地响应内存请求和释放。</li>
+<li>如果某个缓存中的空闲空间快耗尽时，它就向通用内存分配程序申请一些<strong>内存厚块（slab）</strong>（总量是页大小和对象大小的公倍数）。</li>
+<li>相反，如果给定厚块中对象的引用计数变为0，通用的内存分配程序可以从专门的分配程序中回收这些空间，这通常发生在虚拟内存系统需要更多的空间的时候。</li>
+</ol>
+<hr>
+<h3 id="代码实现"><a href="#代码实现" class="headerlink" title="代码实现"></a>代码实现</h3><p><img src="/2024/09/22/Allocator/structure.png" alt="内存结构"></p>
+<h4 id="kinit"><a href="#kinit" class="headerlink" title="kinit()"></a>kinit()</h4><p>初始化时，我们将始于<code>end</code>止于<code>PHYSTOP</code>的堆地址空间全部分页，并把他们连接到<code>kmem</code>结构体中的<code>freelist</code>。</p>
+<p>注意：<code>end</code>是内核地址空间的终止处，但不一定是4KB的倍数。对于<code>end</code>所在页没有用完的部分，我们弃之不用。我们从大于<code>end</code>的最小的4KB倍数的地址处开始分页，直至物理地址终点处<code>PHYSTOP</code>。（所以上图中<code>end</code>和page1之间并不是直接相接的，可能有空余空间。）</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">kinit</span><span class="params">()</span> &#123;</span><br><span class="line">    init_rc(&amp;kalloc_page_cnt);</span><br><span class="line">    init_spinlock(&amp;kmem.lock);						<span class="comment">// 初始化自旋锁</span></span><br><span class="line">    freerange((<span class="type">void</span>*)K2P(end), (<span class="type">void</span>*)PHYSTOP);		<span class="comment">// 将堆划分成一页页</span></span><br><span class="line">    init_caches();									<span class="comment">// 初始化cache</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> PGROUNDUP(sz)  (((sz)+PAGE_SIZE-1) &amp; ~(PAGE_SIZE-1))</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PGROUNDDOWN(a) (((a)) &amp; ~(PAGE_SIZE-1))</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 释放指定区间的物理页（只有kinit时使用）</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">freerange</span><span class="params">(<span class="type">void</span>* pa_start, <span class="type">void</span>* pa_end)</span> &#123;</span><br><span class="line">    <span class="type">char</span> *p;</span><br><span class="line">    <span class="keyword">for</span>(p = (<span class="type">char</span>*)PGROUNDUP((usize)pa_start); p + PAGE_SIZE &lt;= (<span class="type">char</span>*)pa_end; p += PAGE_SIZE) &#123;</span><br><span class="line">        kfree_page(p);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h4 id="kalloc-page"><a href="#kalloc-page" class="headerlink" title="kalloc_page()"></a>kalloc_page()</h4><p>由于计算机可能是多核运行，可能同时多个进程申请空间。为了避免将同一页分配给多个进程，我们要加锁保持一致性。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span>* <span class="title function_">kalloc_page</span><span class="params">()</span> &#123;</span><br><span class="line">    increment_rc(&amp;kalloc_page_cnt);</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">run</span> *<span class="title">r</span>;</span></span><br><span class="line"></span><br><span class="line">    acquire_spinlock(&amp;kmem.lock);   <span class="comment">// 加锁</span></span><br><span class="line">    r = kmem.freelist;</span><br><span class="line">    <span class="keyword">if</span>(r) &#123;</span><br><span class="line">        kmem.freelist = r-&gt;next;    <span class="comment">// 从空闲链表中取出一个物理页r</span></span><br><span class="line">    &#125;</span><br><span class="line">    release_spinlock(&amp;kmem.lock);   <span class="comment">// 解锁</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span>(r)&#123;</span><br><span class="line">        <span class="keyword">return</span> (<span class="type">void</span>*)r;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">NULL</span>;    <span class="comment">// 没有空闲物理页</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h4 id="kfree-page"><a href="#kfree-page" class="headerlink" title="kfree_page()"></a>kfree_page()</h4><p>将指针<code>p</code>所指的页添加会页的空闲列表。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">kfree_page</span><span class="params">(<span class="type">void</span>* p)</span> &#123;</span><br><span class="line">    decrement_rc(&amp;kalloc_page_cnt);</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">run</span> *<span class="title">r</span>;</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span>((usize)p % PAGE_SIZE || (usize)p &lt; K2P(end) || (usize)p &gt;= PHYSTOP) &#123;</span><br><span class="line">        printk(<span class="string">&quot;kfree_page fail: p = %p\n&quot;</span>, p);   </span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    r = (<span class="keyword">struct</span> run*)p;</span><br><span class="line">    acquire_spinlock(&amp;kmem.lock);   <span class="comment">// 加锁</span></span><br><span class="line">    r-&gt;next = kmem.freelist;        <span class="comment">// 将释放的物理页加入空闲链表</span></span><br><span class="line">    kmem.freelist = r;</span><br><span class="line">    release_spinlock(&amp;kmem.lock);   <span class="comment">// 解锁</span></span><br><span class="line">    <span class="keyword">return</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h4 id="slab-alloc"><a href="#slab-alloc" class="headerlink" title="slab_alloc()"></a>slab_alloc()</h4><p>给定<code>cache</code>，也就是给定对象大小，我们在一串串slab中寻找空闲对象，并返回其地址。如果<code>cache</code>中的所有slab都没有空闲对象，那么我们调用<code>kalloc_page()</code>申请新的页，并将其划分成新的slab，在返回新slab中的第一个对象的地址。</p>
+<p>注意：</p>
+<ul>
+<li>当我们把新的一页划分后得到slab时，由于每个slab的开头需要存放<code>Slab</code>结构体（25字节，但是为了对齐需要32字节）在开头，所以剩下4064字节用于划分对象。对象大小并不一定总是能整除剩余空间大小，所以是有可能划分完所有对象后，存在碎片空间。</li>
+<li>对齐</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span>* <span class="title function_">slab_alloc</span><span class="params">(<span class="keyword">struct</span> Cache* cache)</span> &#123;</span><br><span class="line">    <span class="comment">//-------------------- 从已有的slab中分配对象 --------------------</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">Slab</span>* <span class="title">slab</span> =</span> cache-&gt;slabs;</span><br><span class="line">    <span class="keyword">while</span> (slab != <span class="literal">NULL</span>) &#123;</span><br><span class="line">        acquire_spinlock(&amp;slab-&gt;lock);</span><br><span class="line">        <span class="keyword">if</span> (slab-&gt;free_count &gt; <span class="number">0</span>) &#123;</span><br><span class="line">            <span class="type">void</span>* obj = slab-&gt;free_list;</span><br><span class="line">            slab-&gt;free_list = *(<span class="type">void</span>**)obj; <span class="comment">// 指向下一个空闲对象</span></span><br><span class="line">            slab-&gt;free_count--;</span><br><span class="line">            release_spinlock(&amp;slab-&gt;lock);</span><br><span class="line">            <span class="keyword">return</span> obj;</span><br><span class="line">        &#125;</span><br><span class="line">        release_spinlock(&amp;slab-&gt;lock);</span><br><span class="line">        slab = slab-&gt;next;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">//-------------------- 如果所有slab都用完了，分配新的页 --------------------</span></span><br><span class="line">    slab = (<span class="keyword">struct</span> Slab*)kalloc_page();</span><br><span class="line">    <span class="keyword">if</span> (slab == <span class="literal">NULL</span>) &#123;</span><br><span class="line">        printk(<span class="string">&quot;slab_alloc: fail to get a new page\n&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">//-------------------- 初始化新的slab --------------------</span></span><br><span class="line">    init_spinlock(&amp;slab-&gt;lock);</span><br><span class="line">    acquire_spinlock(&amp;slab-&gt;lock);</span><br><span class="line">    slab-&gt;next = cache-&gt;slabs;</span><br><span class="line">    cache-&gt;slabs = slab;</span><br><span class="line">    slab-&gt;free_list = (<span class="type">void</span>*)((<span class="type">char</span>*)slab + <span class="number">32</span>);   <span class="comment">// 留出空间给 struct Slab(25 bytes)</span></span><br><span class="line">    slab-&gt;free_count = (PAGE_SIZE - <span class="number">32</span>) / cache-&gt;obj_size;   <span class="comment">// 8是指针的大小</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">//-------------------- 初始化空闲对象链表 --------------------</span></span><br><span class="line">    <span class="type">char</span>* obj = (<span class="type">char</span>*)slab-&gt;free_list;</span><br><span class="line">    <span class="keyword">for</span>(usize i = <span class="number">1</span>; i &lt; slab-&gt;free_count; i++) &#123;</span><br><span class="line">        *(<span class="type">void</span>**)obj = obj + cache-&gt;obj_size;   <span class="comment">// 每一个对象的开始，存放下一个对象的地址</span></span><br><span class="line">        obj += cache-&gt;obj_size;</span><br><span class="line">    &#125;</span><br><span class="line">    *(<span class="type">void</span>**)obj = <span class="literal">NULL</span>;</span><br><span class="line">    cache-&gt;slab_count++;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//-------------------- 返回第一个空闲对象 --------------------</span></span><br><span class="line">    obj = slab-&gt;free_list;</span><br><span class="line">    slab-&gt;free_list = *(<span class="type">void</span>**)obj; <span class="comment">// 指向下一个空闲对象</span></span><br><span class="line">    slab-&gt;free_count--;</span><br><span class="line">    release_spinlock(&amp;slab-&gt;lock);</span><br><span class="line">    <span class="keyword">return</span> obj;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h4 id="slab-free"><a href="#slab-free" class="headerlink" title="slab_free()"></a>slab_free()</h4><p>给出对象地址，我们将其添加会对应slab的空闲对象列表中。</p>
+<p>注意：由于slab是由页划分得来的，所以slab的其实地址都是4KB的倍数。而且，每个slab的开始处存放着<code>struct Slab</code>结构体。所以我们只需要求出：小于<code>obj</code>的最大的4KB倍数（这就是该slab的<code>Slab</code>结构体地址）。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">slab_free</span><span class="params">(<span class="type">void</span>* obj)</span> &#123;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">Slab</span> *<span class="title">slab</span> =</span> (<span class="keyword">struct</span> Slab*)PGROUNDDOWN((usize)obj);</span><br><span class="line">    acquire_spinlock(&amp;slab-&gt;lock);</span><br><span class="line">    *(<span class="type">void</span>**)obj = slab-&gt;free_list;</span><br><span class="line">    slab-&gt;free_list = obj;</span><br><span class="line">    slab-&gt;free_count++;</span><br><span class="line">    release_spinlock(&amp;slab-&gt;lock);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h4 id="kalloc"><a href="#kalloc" class="headerlink" title="kalloc()"></a>kalloc()</h4><p>分配指定大小的内存块。我们通过调用<code>slab_alloc()</code>来分配适当大小的内存块。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span>* <span class="title function_">kalloc</span><span class="params">(<span class="type">unsigned</span> <span class="type">long</span> <span class="type">long</span> size)</span> &#123;</span><br><span class="line">    <span class="comment">// return NULL;</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">//printk(&quot;CPU%lld kalloc: size = %lld\n&quot;, cpuid(), size);</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (size &gt; PAGE_SIZE) &#123;</span><br><span class="line">        printk(<span class="string">&quot;kalloc: size too large\n&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">NULL</span>; <span class="comment">// 不支持大于一页的分配</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">Cache</span>* <span class="title">cache</span> =</span> get_cache(size);	<span class="comment">// 寻找object_size刚刚大于size的cache</span></span><br><span class="line">    <span class="keyword">if</span> (cache == <span class="literal">NULL</span>) &#123;</span><br><span class="line">        printk(<span class="string">&quot;kalloc: no suitable cache for size %lld\n&quot;</span>, size);</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">NULL</span>; <span class="comment">// 没有合适的 cache</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> slab_alloc(cache);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">struct</span> Cache* <span class="title function_">get_cache</span><span class="params">(usize size)</span> &#123;</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; NUM_CACHE; i++) &#123;</span><br><span class="line">        <span class="keyword">if</span> (size &lt;= cache[i].obj_size) &#123;</span><br><span class="line">            <span class="keyword">return</span> &amp;cache[i];</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">NULL</span>; <span class="comment">// 如果没有合适的 cache</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h4 id="kfree"><a href="#kfree" class="headerlink" title="kfree()"></a>kfree()</h4><p>释放指定地址的内存块。我们直接通过调用<code>slab_free()</code>把内存块添加会空闲对象列表，这样这个内存块就再被其他程序申请使用了。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">kfree</span><span class="params">(<span class="type">void</span>* ptr)</span> &#123;</span><br><span class="line">    slab_free(ptr);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h3 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h3><p>[教材OSTEP第17章：空闲空间管理](<a target="_blank" rel="noopener" href="https://pages.cs.wisc.edu/~remzi/OSTEP/">Operating Systems: Three Easy Pieces (wisc.edu)</a>)</p>
+<p><a target="_blank" rel="noopener" href="https://github.com/mit-pdos/xv6-public">MIT的xv6操作系统</a></p>
+<p><a target="_blank" rel="noopener" href="https://osh.fducslg.com/operating-systems-h-24fall">FDU2024操作系统 (H)：Lab1</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/original/" rel="tag"># original</a>
+              <a href="/tags/labs/" rel="tag"># labs</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/09/18/%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92/" rel="prev" title="动态规划">
+      <i class="fa fa-chevron-left"></i> 动态规划
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8A%80%E6%9C%AF%E8%B7%AF%E7%BA%BF"><span class="nav-number">1.</span> <span class="nav-text">技术路线</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Allocator"><span class="nav-number">1.1.</span> <span class="nav-text">Allocator</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Free-space-management"><span class="nav-number">1.2.</span> <span class="nav-text">Free-space management</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Mechanism"><span class="nav-number">1.3.</span> <span class="nav-text">Mechanism</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Segregated-list"><span class="nav-number">1.4.</span> <span class="nav-text">Segregated list</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BB%A3%E7%A0%81%E5%AE%9E%E7%8E%B0"><span class="nav-number">2.</span> <span class="nav-text">代码实现</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#kinit"><span class="nav-number">2.1.</span> <span class="nav-text">kinit()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#kalloc-page"><span class="nav-number">2.2.</span> <span class="nav-text">kalloc_page()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#kfree-page"><span class="nav-number">2.3.</span> <span class="nav-text">kfree_page()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#slab-alloc"><span class="nav-number">2.4.</span> <span class="nav-text">slab_alloc()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#slab-free"><span class="nav-number">2.5.</span> <span class="nav-text">slab_free()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#kalloc"><span class="nav-number">2.6.</span> <span class="nav-text">kalloc()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#kfree"><span class="nav-number">2.7.</span> <span class="nav-text">kfree()</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99"><span class="nav-number">3.</span> <span class="nav-text">参考资料</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">xht03</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">17</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">xht03</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/pjax/pjax.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+  <script>
+var pjax = new Pjax({
+  selectors: [
+    'head title',
+    '#page-configurations',
+    '.content-wrap',
+    '.post-toc-wrap',
+    '.languages',
+    '#pjax'
+  ],
+  switches: {
+    '.post-toc-wrap': Pjax.switches.innerHTML
+  },
+  analytics: false,
+  cacheBust: false,
+  scrollTo : !CONFIG.bookmark.enable
+});
+
+window.addEventListener('pjax:success', () => {
+  document.querySelectorAll('script[data-pjax], script#page-configurations, #pjax script').forEach(element => {
+    var code = element.text || element.textContent || element.innerHTML || '';
+    var parent = element.parentNode;
+    parent.removeChild(element);
+    var script = document.createElement('script');
+    if (element.id) {
+      script.id = element.id;
+    }
+    if (element.className) {
+      script.className = element.className;
+    }
+    if (element.type) {
+      script.type = element.type;
+    }
+    if (element.src) {
+      script.src = element.src;
+      // Force synchronous loading of peripheral JS.
+      script.async = false;
+    }
+    if (element.dataset.pjax !== undefined) {
+      script.dataset.pjax = '';
+    }
+    if (code !== '') {
+      script.appendChild(document.createTextNode(code));
+    }
+    parent.appendChild(script);
+  });
+  NexT.boot.refresh();
+  // Define Motion Sequence & Bootstrap Motion.
+  if (CONFIG.motion.enable) {
+    NexT.motion.integrator
+      .init()
+      .add(NexT.motion.middleWares.subMenu)
+      .add(NexT.motion.middleWares.postList)
+      .bootstrap();
+  }
+  NexT.utils.updateSidebarPosition();
+});
+</script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <div id="pjax">
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://book-written-on-water.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  var disqus_config = function() {
+    this.page.url = "http://xht03.github.io/2024/09/22/Allocator/";
+    this.page.identifier = "2024/09/22/Allocator/";
+    this.page.title = "Allocator";
+    };
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: disqus_config
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://book-written-on-water.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+    </div>
+</body>
+</html>

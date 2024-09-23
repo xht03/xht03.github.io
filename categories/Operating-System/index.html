@@ -21,24 +21,15 @@
     var CONFIG = {"hostname":"xht03.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":"default"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":true,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
   </script>
 
-  <meta name="description" content="函数增长在比较算法性能时，虽然有时我们能够确定一个算法的精确运行时间，但是通常并不值得花力气来计算它（精度多余了）。对于足够大的输入，算法的运行时间中的常数倍数和低阶项相对于输入规模的影响变得不那么显著。 因此，我们研究渐近效率。我们关心：当输入规模无限增加时，在极限中，算法的运行时间如何随着输入规模的变大而增加。  渐近记号以下是常用的渐近记号。  对于两个函数f、g的渐近比较，我们可以将其类比">
-<meta property="og:type" content="article">
-<meta property="og:title" content="渐近分析">
-<meta property="og:url" content="http://xht03.github.io/2024/09/05/%E6%B8%90%E8%BF%91%E5%88%86%E6%9E%90/index.html">
+  <meta property="og:type" content="website">
+<meta property="og:title" content="延绪的水上书">
+<meta property="og:url" content="http://xht03.github.io/categories/Operating-System/index.html">
 <meta property="og:site_name" content="延绪的水上书">
-<meta property="og:description" content="函数增长在比较算法性能时，虽然有时我们能够确定一个算法的精确运行时间，但是通常并不值得花力气来计算它（精度多余了）。对于足够大的输入，算法的运行时间中的常数倍数和低阶项相对于输入规模的影响变得不那么显著。 因此，我们研究渐近效率。我们关心：当输入规模无限增加时，在极限中，算法的运行时间如何随着输入规模的变大而增加。  渐近记号以下是常用的渐近记号。  对于两个函数f、g的渐近比较，我们可以将其类比">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="http://xht03.github.io/2024/09/05/%E6%B8%90%E8%BF%91%E5%88%86%E6%9E%90/notations.jpg">
-<meta property="og:image" content="http://xht03.github.io/2024/09/05/%E6%B8%90%E8%BF%91%E5%88%86%E6%9E%90/leibi.png">
-<meta property="article:published_time" content="2024-09-05T07:48:21.000Z">
-<meta property="article:modified_time" content="2024-09-19T07:19:21.405Z">
 <meta property="article:author" content="xht03">
-<meta property="article:tag" content="original">
-<meta property="article:tag" content="notes">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="http://xht03.github.io/2024/09/05/%E6%B8%90%E8%BF%91%E5%88%86%E6%9E%90/notations.jpg">
 
-<link rel="canonical" href="http://xht03.github.io/2024/09/05/%E6%B8%90%E8%BF%91%E5%88%86%E6%9E%90/">
+<link rel="canonical" href="http://xht03.github.io/categories/Operating-System/">
 
 
 <script id="page-configurations">
@@ -46,12 +37,12 @@
   CONFIG.page = {
     sidebar: "",
     isHome : false,
-    isPost : true,
+    isPost : false,
     lang   : 'zh-CN'
   };
 </script>
 
-  <title>渐近分析 | 延绪的水上书</title>
+  <title>分类: Operating System | 延绪的水上书</title>
   
 
 
@@ -149,132 +140,57 @@
         <div class="content-wrap">
           
 
-          <div class="content post posts-expand">
+          <div class="content category">
             
 
-    
   
   
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://xht03.github.io/2024/09/05/%E6%B8%90%E8%BF%91%E5%88%86%E6%9E%90/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="xht03">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="延绪的水上书">
-    </span>
-      <header class="post-header">
-        <h1 class="post-title" itemprop="name headline">
-          渐近分析
-        </h1>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2024-09-05 15:48:21" itemprop="dateCreated datePublished" datetime="2024-09-05T15:48:21+08:00">2024-09-05</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2024-09-19 15:19:21" itemprop="dateModified" datetime="2024-09-19T15:19:21+08:00">2024-09-19</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/The-Introduction-to-Algorithm/" itemprop="url" rel="index"><span itemprop="name">The Introduction to Algorithm</span></a>
-                </span>
-            </span>
-
-          
   
-  <span class="post-meta-item">
-    
-      <span class="post-meta-item-icon">
-        <i class="far fa-comment"></i>
-      </span>
-      <span class="post-meta-item-text">Disqus：</span>
-    
-    <a title="disqus" href="/2024/09/05/%E6%B8%90%E8%BF%91%E5%88%86%E6%9E%90/#disqus_thread" itemprop="discussionUrl">
-      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2024/09/05/渐近分析/" itemprop="commentCount"></span>
-    </a>
-  </span>
-  
-  
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
+  <div class="post-block">
+    <div class="posts-collapse">
+      <div class="collection-title">
+        <h2 class="collection-header">Operating System
+          <small>分类</small>
+        </h2>
+      </div>
 
       
-        <h3 id="函数增长"><a href="#函数增长" class="headerlink" title="函数增长"></a>函数增长</h3><p>在比较算法性能时，虽然有时我们能够确定一个算法的<strong>精确运行时间</strong>，但是通常并不值得花力气来计算它（精度多余了）。对于足够大的输入，算法的运行时间中的<strong>常数倍数</strong>和<strong>低阶项</strong>相对于输入规模的影响变得不那么显著。</p>
-<p>因此，我们研究<strong>渐近效率</strong>。我们关心：当输入规模无限增加时，在极限中，算法的运行时间如何随着输入规模的变大而增加。</p>
-<hr>
-<h3 id="渐近记号"><a href="#渐近记号" class="headerlink" title="渐近记号"></a>渐近记号</h3><p>以下是常用的渐近记号。</p>
-<p><img src="/2024/09/05/%E6%B8%90%E8%BF%91%E5%88%86%E6%9E%90/notations.jpg" alt="渐近记号"></p>
-<p>对于两个函数<code>f</code>、<code>g</code>的渐近比较，我们可以将其类比成实数<code>a</code>、<code>b</code>的比较。</p>
-<p><img src="/2024/09/05/%E6%B8%90%E8%BF%91%E5%88%86%E6%9E%90/leibi.png"></p>
-
+    <div class="collection-year">
+      <span class="collection-header">2024</span>
     </div>
 
-    
-    
-    
+  <article itemscope itemtype="http://schema.org/Article">
+    <header class="post-header">
 
-      <footer class="post-footer">
-          <div class="post-tags">
-              <a href="/tags/original/" rel="tag"># original</a>
-              <a href="/tags/notes/" rel="tag"># notes</a>
-          </div>
+      <div class="post-meta">
+        <time itemprop="dateCreated"
+              datetime="2024-09-22T16:56:42+08:00"
+              content="2024-09-22">
+          09-22
+        </time>
+      </div>
 
-        
+      <div class="post-title">
+          <a class="post-title-link" href="/2024/09/22/Allocator/" itemprop="url">
+            <span itemprop="name">Allocator</span>
+          </a>
+      </div>
 
-
-        
-    <div class="post-nav">
-      <div class="post-nav-item">
-    <a href="/2024/08/23/%E9%9D%99%E6%80%81%E6%8F%92%E6%A1%A9/" rel="prev" title="静态插桩">
-      <i class="fa fa-chevron-left"></i> 静态插桩
-    </a></div>
-      <div class="post-nav-item">
-    <a href="/2024/09/07/%E5%88%86%E6%B2%BB%E7%AD%96%E7%95%A5/" rel="next" title="分治策略">
-      分治策略 <i class="fa fa-chevron-right"></i>
-    </a></div>
-    </div>
-      </footer>
-    
+    </header>
   </article>
-  
-  
-  
 
-
-
-          </div>
-          
-    
-  <div class="comments">
-    <div id="disqus_thread">
-      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
     </div>
   </div>
   
+  
+  
+
+  
+
+
+
+          </div>
+          
 
 <script>
   window.addEventListener('tabs:register', () => {
@@ -321,7 +237,6 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%87%BD%E6%95%B0%E5%A2%9E%E9%95%BF"><span class="nav-number">1.</span> <span class="nav-text">函数增长</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B8%90%E8%BF%91%E8%AE%B0%E5%8F%B7"><span class="nav-number">2.</span> <span class="nav-text">渐近记号</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 
@@ -504,26 +419,6 @@ window.addEventListener('pjax:success', () => {
   }
   // defer loading until the whole page loading is completed
   window.addEventListener('load', loadCount, false);
-</script>
-<script>
-  var disqus_config = function() {
-    this.page.url = "http://xht03.github.io/2024/09/05/%E6%B8%90%E8%BF%91%E5%88%86%E6%9E%90/";
-    this.page.identifier = "2024/09/05/渐近分析/";
-    this.page.title = "渐近分析";
-    };
-  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
-    if (window.DISQUS) {
-      DISQUS.reset({
-        reload: true,
-        config: disqus_config
-      });
-    } else {
-      var d = document, s = d.createElement('script');
-      s.src = 'https://book-written-on-water.disqus.com/embed.js';
-      s.setAttribute('data-timestamp', '' + +new Date());
-      (d.head || d.body).appendChild(s);
-    }
-  });
 </script>
 
     </div>
