@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"xht03.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":"default"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":true,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="二叉搜索树二叉搜索树（Binary Search Tree，BST）是一种特殊的二叉树，它具有以下性质：  有序性：对于树中的任意节点，其左子树上所有节点的值都小于该节点的值，其右子树上所有节点的值都大于该节点的值。  二叉树结构：每个节点最多有两个子节点，即左子节点和右子节点。  没有键值重复：树中不存在两个节点具有相同的键值。    二叉搜索树的基本操作包括：  查找（Search）：给定一个">
+<meta property="og:type" content="article">
+<meta property="og:title" content="二叉搜索树">
+<meta property="og:url" content="http://xht03.github.io/2024/11/05/%E4%BA%8C%E5%8F%89%E6%90%9C%E7%B4%A2%E6%A0%91/index.html">
+<meta property="og:site_name" content="延绪的水上书">
+<meta property="og:description" content="二叉搜索树二叉搜索树（Binary Search Tree，BST）是一种特殊的二叉树，它具有以下性质：  有序性：对于树中的任意节点，其左子树上所有节点的值都小于该节点的值，其右子树上所有节点的值都大于该节点的值。  二叉树结构：每个节点最多有两个子节点，即左子节点和右子节点。  没有键值重复：树中不存在两个节点具有相同的键值。    二叉搜索树的基本操作包括：  查找（Search）：给定一个">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://ref.xht03.online/202411061545789.png">
+<meta property="article:published_time" content="2024-11-05T13:04:39.000Z">
+<meta property="article:modified_time" content="2024-11-06T07:55:04.630Z">
+<meta property="article:author" content="xht03">
+<meta property="article:tag" content="original">
+<meta property="article:tag" content="notes">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://ref.xht03.online/202411061545789.png">
+
+<link rel="canonical" href="http://xht03.github.io/2024/11/05/%E4%BA%8C%E5%8F%89%E6%90%9C%E7%B4%A2%E6%A0%91/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>二叉搜索树 | 延绪的水上书</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">延绪的水上书</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://xht03.github.io/2024/11/05/%E4%BA%8C%E5%8F%89%E6%90%9C%E7%B4%A2%E6%A0%91/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="xht03">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="延绪的水上书">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          二叉搜索树
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2024-11-05 21:04:39" itemprop="dateCreated datePublished" datetime="2024-11-05T21:04:39+08:00">2024-11-05</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2024-11-06 15:55:04" itemprop="dateModified" datetime="2024-11-06T15:55:04+08:00">2024-11-06</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/The-Introduction-to-Algorithm/" itemprop="url" rel="index"><span itemprop="name">The Introduction to Algorithm</span></a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2024/11/05/%E4%BA%8C%E5%8F%89%E6%90%9C%E7%B4%A2%E6%A0%91/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2024/11/05/二叉搜索树/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h3 id="二叉搜索树"><a href="#二叉搜索树" class="headerlink" title="二叉搜索树"></a>二叉搜索树</h3><p><strong>二叉搜索树（Binary Search Tree，BST）</strong>是一种特殊的二叉树，它具有以下性质：</p>
+<ul>
+<li><p><strong>有序性</strong>：对于树中的任意节点，其左子树上所有节点的值都小于该节点的值，其右子树上所有节点的值都大于该节点的值。</p>
+</li>
+<li><p><strong>二叉树结构</strong>：每个节点最多有两个子节点，即左子节点和右子节点。</p>
+</li>
+<li><p><strong>没有键值重复</strong>：树中不存在两个节点具有相同的键值。</p>
+</li>
+</ul>
+<hr>
+<p>二叉搜索树的基本操作包括：</p>
+<ul>
+<li><strong>查找（Search）</strong>：给定一个值，查找树中是否存在该值。</li>
+<li><strong>插入（Insert）</strong>：插入一个新的值。</li>
+<li><strong>删除（Delete）</strong>：删除树中的一个节点。</li>
+<li><strong>遍历（Walk）</strong>：二叉搜索树可以通过中序遍历得到一个有序的元素序列。</li>
+</ul>
+<blockquote>
+<p><strong>二叉搜索树上的基本操作所花费的时间与这棵树的高度 h 成正比。</strong></p>
+</blockquote>
+<hr>
+<h3 id="遍历操作"><a href="#遍历操作" class="headerlink" title="遍历操作"></a>遍历操作</h3><p>二叉搜索树性质允许我们通过一个简单的递归算法来<strong>按序输出</strong>二叉搜索树中的所有关键字，这种算法称为<strong>中序遍历（inorder tree walk）</strong>算法。</p>
+<blockquote>
+<p>这样命名的原因是输出的子树根的关键字位于其左子树的关键字值和右子树的关键字值之间。（前序遍历、后序遍历类似。）</p>
+</blockquote>
+<p>伪代码如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">INORDER-TREE-WALK(x)</span><br><span class="line">	if x != NIL</span><br><span class="line">    	INORDER-TREE-WALK(x.left)</span><br><span class="line">        print x.key</span><br><span class="line">        INORDER-TREE-WALK(x.right)</span><br></pre></td></tr></table></figure>
+
+<p>显然，遍历一个二叉搜索树的时间代价是 **&Theta;(n)**。</p>
+<hr>
+<h3 id="查询操作"><a href="#查询操作" class="headerlink" title="查询操作"></a>查询操作</h3><blockquote>
+<p>在一棵高度为h 的二叉搜索树上，查询操作 <code>SEARCH</code>、<code>MINIMUM</code>、<code>MAXIMUM</code>、<code>SUCCESSOR</code> 和 <code>PREDECESSOR</code> 均可以在 <strong>O(h)</strong> 时间内完成。</p>
+</blockquote>
+<h4 id="查找"><a href="#查找" class="headerlink" title="查找"></a>查找</h4><p>我们通过 <code>TREE-SEARCH(x, k)</code>，查找以<code>x</code>为根的树中是否包含关键字 <code>k</code>。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">TREE-SEARCH(x, k)</span><br><span class="line">	if x==NIL or k==x.key</span><br><span class="line">		return x</span><br><span class="line"></span><br><span class="line">	if k &lt; x.key</span><br><span class="line">		return TREE-SEARCH(x.left, k)</span><br><span class="line"></span><br><span class="line">	else return TREE-SEARCH(x.right, k)</span><br></pre></td></tr></table></figure>
+
+<p>不难证明，查找操作的时间代价是 **O(h)**。</p>
+<hr>
+<h4 id="最小值和最大值"><a href="#最小值和最大值" class="headerlink" title="最小值和最大值"></a>最小值和最大值</h4><p><code>TREE-MINIMUM(x)</code>寻找以x为根的树中的<strong>最小值</strong>（就是子树的最左节点）。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">TREE-MINIMUM(x)</span><br><span class="line">	while x.left != NIL</span><br><span class="line">		x = x.left</span><br><span class="line">	return x</span><br></pre></td></tr></table></figure>
+
+<p><code>TREE-MAXIMUM(x)</code>寻找以x为根的树中的<strong>最大值</strong>（就是子树的最右节点）。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">TREE-MAXIMUM(x)</span><br><span class="line">	while x.right != NIL</span><br><span class="line">		x = x.right</span><br><span class="line">	return x</span><br></pre></td></tr></table></figure>
+
+<p>这两个过程在一棵高度为 h 的树上均能在 <strong>O(h)</strong> 时间内执行完。</p>
+<hr>
+<h4 id="后继和前驱"><a href="#后继和前驱" class="headerlink" title="后继和前驱"></a>后继和前驱</h4><p><strong>所谓后继，就是当前节点在中序遍历过程中的下一个节点</strong>。这也是从小到大排序中，大于当前节点的最小节点。</p>
+<p><strong>前驱</strong>同理。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># python 实现</span></span><br><span class="line"><span class="comment"># 寻找后继步骤：</span></span><br><span class="line"><span class="comment"># 1. 如果有右子树，后继是右子树中的最小节点</span></span><br><span class="line"><span class="comment"># 2. 如果没有，后继是当前节点的某个祖先节点</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">find_successor</span>(<span class="params">node</span>):</span><br><span class="line">    <span class="comment"># 如果有右子树</span></span><br><span class="line">    <span class="keyword">if</span> node.right:</span><br><span class="line">        <span class="keyword">return</span> find_min(node.right)</span><br><span class="line">    </span><br><span class="line">    <span class="comment"># 如果没有右子树</span></span><br><span class="line">    parent = node.parent</span><br><span class="line">    <span class="keyword">while</span> parent <span class="keyword">and</span> node == parent.right:</span><br><span class="line">        node = parent</span><br><span class="line">        parent = parent.parent</span><br><span class="line">    <span class="keyword">return</span> parent</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">find_min</span>(<span class="params">node</span>):</span><br><span class="line">    <span class="keyword">while</span> node.left:</span><br><span class="line">        node = node.left</span><br><span class="line">    <span class="keyword">return</span> node</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># python 实现</span></span><br><span class="line"><span class="comment"># 二叉树节点定义</span></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">TreeNode</span>:</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self, value=<span class="number">0</span>, left=<span class="literal">None</span>, right=<span class="literal">None</span></span>):</span><br><span class="line">        self.value = value</span><br><span class="line">        self.left = left</span><br><span class="line">        self.right = right</span><br></pre></td></tr></table></figure>
+
+<p>该过程或者遵从一条简单路径沿树向上或者遵从简单路径沿树向下。所以，<code>SUCCESSOR</code> 操作可以在 <strong>O(h)</strong> 时间内完成。</p>
+<hr>
+<h3 id="插入操作"><a href="#插入操作" class="headerlink" title="插入操作"></a>插入操作</h3><p>插入操作，与查找操作类似，只不过是在二叉搜索树中没能找到对应元素。此时，我们就<strong>在查找路径的尽头，插入新元素</strong>。</p>
+<p>所以，<code>TREE-INSERT</code> 操作可以在 <strong>O(h)</strong> 时间内完成。</p>
+<p>伪代码如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">TREE-INSERT(T, z)</span><br><span class="line">	y = NIL</span><br><span class="line">	x = T.root</span><br><span class="line"></span><br><span class="line">	while x != NIL</span><br><span class="line">		y = x</span><br><span class="line">		if z.key &lt; x.key</span><br><span class="line">			x = x.left</span><br><span class="line">		else</span><br><span class="line">			x = x.right</span><br><span class="line"></span><br><span class="line">	z.parent = y</span><br><span class="line"></span><br><span class="line">	if y == NIL</span><br><span class="line">		T.root = z  </span><br><span class="line">	else if z.key &lt; y.key</span><br><span class="line">	    y.left = z</span><br><span class="line">	else</span><br><span class="line">	    y.right = z</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h3 id="删除操作"><a href="#删除操作" class="headerlink" title="删除操作"></a>删除操作</h3><p>删除的过程如下：</p>
+<ul>
+<li>如果被删除节点 z 没有孩子，则直接删除 z。</li>
+<li>如果 z 只有一个孩子，那么 z 孩子替代 z 的位置。</li>
+<li>如果 z 有两个孩子：<ul>
+<li>z 的后继 y（一定在 z 的右子树中）替代 z 的位置。</li>
+<li>y 的孩子代替 y 的位置。（y 是子树中的最左节点，只有一个孩子。）</li>
+</ul>
+</li>
+</ul>
+<p><img src="https://ref.xht03.online/202411061545789.png"></p>
+<p>不难证明，<code>TREE-DELETE</code> 能在 <strong>O(h)</strong> 时间内完成。</p>
+<hr>
+<h3 id="随机构建"><a href="#随机构建" class="headerlink" title="随机构建"></a>随机构建</h3><p><strong>随机构建二叉搜索树</strong>是指：按随机次序插入关键字到一棵初始的空树中而生成的树，且输入的关键字排列等可能的出现。</p>
+<blockquote>
+<p>一棵有 n 个不同关键字的<strong>随机构建二叉搜索树</strong>的期望高度为 **O(lgn)**。</p>
+</blockquote>
+<p><strong>证明</strong>：</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/original/" rel="tag"># original</a>
+              <a href="/tags/notes/" rel="tag"># notes</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/10/31/%E7%BA%A2%E9%BB%91%E6%A0%91/" rel="prev" title="红黑树">
+      <i class="fa fa-chevron-left"></i> 红黑树
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/11/06/%E5%B9%B3%E6%91%8A%E5%88%86%E6%9E%90/" rel="next" title="平摊分析">
+      平摊分析 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BA%8C%E5%8F%89%E6%90%9C%E7%B4%A2%E6%A0%91"><span class="nav-number">1.</span> <span class="nav-text">二叉搜索树</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%81%8D%E5%8E%86%E6%93%8D%E4%BD%9C"><span class="nav-number">2.</span> <span class="nav-text">遍历操作</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9F%A5%E8%AF%A2%E6%93%8D%E4%BD%9C"><span class="nav-number">3.</span> <span class="nav-text">查询操作</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%9F%A5%E6%89%BE"><span class="nav-number">3.1.</span> <span class="nav-text">查找</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%9C%80%E5%B0%8F%E5%80%BC%E5%92%8C%E6%9C%80%E5%A4%A7%E5%80%BC"><span class="nav-number">3.2.</span> <span class="nav-text">最小值和最大值</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%90%8E%E7%BB%A7%E5%92%8C%E5%89%8D%E9%A9%B1"><span class="nav-number">3.3.</span> <span class="nav-text">后继和前驱</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8F%92%E5%85%A5%E6%93%8D%E4%BD%9C"><span class="nav-number">4.</span> <span class="nav-text">插入操作</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%A0%E9%99%A4%E6%93%8D%E4%BD%9C"><span class="nav-number">5.</span> <span class="nav-text">删除操作</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%9A%8F%E6%9C%BA%E6%9E%84%E5%BB%BA"><span class="nav-number">6.</span> <span class="nav-text">随机构建</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">xht03</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">26</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">xht03</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/pjax/pjax.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+  <script>
+var pjax = new Pjax({
+  selectors: [
+    'head title',
+    '#page-configurations',
+    '.content-wrap',
+    '.post-toc-wrap',
+    '.languages',
+    '#pjax'
+  ],
+  switches: {
+    '.post-toc-wrap': Pjax.switches.innerHTML
+  },
+  analytics: false,
+  cacheBust: false,
+  scrollTo : !CONFIG.bookmark.enable
+});
+
+window.addEventListener('pjax:success', () => {
+  document.querySelectorAll('script[data-pjax], script#page-configurations, #pjax script').forEach(element => {
+    var code = element.text || element.textContent || element.innerHTML || '';
+    var parent = element.parentNode;
+    parent.removeChild(element);
+    var script = document.createElement('script');
+    if (element.id) {
+      script.id = element.id;
+    }
+    if (element.className) {
+      script.className = element.className;
+    }
+    if (element.type) {
+      script.type = element.type;
+    }
+    if (element.src) {
+      script.src = element.src;
+      // Force synchronous loading of peripheral JS.
+      script.async = false;
+    }
+    if (element.dataset.pjax !== undefined) {
+      script.dataset.pjax = '';
+    }
+    if (code !== '') {
+      script.appendChild(document.createTextNode(code));
+    }
+    parent.appendChild(script);
+  });
+  NexT.boot.refresh();
+  // Define Motion Sequence & Bootstrap Motion.
+  if (CONFIG.motion.enable) {
+    NexT.motion.integrator
+      .init()
+      .add(NexT.motion.middleWares.subMenu)
+      .add(NexT.motion.middleWares.postList)
+      .bootstrap();
+  }
+  NexT.utils.updateSidebarPosition();
+});
+</script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <div id="pjax">
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://book-written-on-water.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  var disqus_config = function() {
+    this.page.url = "http://xht03.github.io/2024/11/05/%E4%BA%8C%E5%8F%89%E6%90%9C%E7%B4%A2%E6%A0%91/";
+    this.page.identifier = "2024/11/05/二叉搜索树/";
+    this.page.title = "二叉搜索树";
+    };
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: disqus_config
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://book-written-on-water.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+    </div>
+</body>
+</html>

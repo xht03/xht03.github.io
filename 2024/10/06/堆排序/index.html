@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"xht03.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":"default"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":true,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="堆堆是一个数组，存储在数组中的二叉树。堆可以看成一个近似的完全二叉树，除了最底层外，该树是充满的。 堆可以分为两类：  最大堆：父节点 &gt; 子节点 最小堆：父节点 &lt; 子节点    堆排序堆排序的时间复杂度也是 O(n·lgn)。但是，不同于归并排序，堆排序具有空间原址性：只需要常数个额外空间来存储临时数据。 为了实现堆，我们要实现以下两个函数：  MAX-HEAPIFY()：最大堆化">
+<meta property="og:type" content="article">
+<meta property="og:title" content="堆排序">
+<meta property="og:url" content="http://xht03.github.io/2024/10/06/%E5%A0%86%E6%8E%92%E5%BA%8F/index.html">
+<meta property="og:site_name" content="延绪的水上书">
+<meta property="og:description" content="堆堆是一个数组，存储在数组中的二叉树。堆可以看成一个近似的完全二叉树，除了最底层外，该树是充满的。 堆可以分为两类：  最大堆：父节点 &gt; 子节点 最小堆：父节点 &lt; 子节点    堆排序堆排序的时间复杂度也是 O(n·lgn)。但是，不同于归并排序，堆排序具有空间原址性：只需要常数个额外空间来存储临时数据。 为了实现堆，我们要实现以下两个函数：  MAX-HEAPIFY()：最大堆化">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://xht03.github.io/2024/10/06/%E5%A0%86%E6%8E%92%E5%BA%8F/Users/Keats/Desktop/Erewhon/Yanxu-Blog/source_posts/%E5%A0%86%E6%8E%92%E5%BA%8F/heap.png">
+<meta property="og:image" content="http://xht03.github.io/2024/10/06/%E5%A0%86%E6%8E%92%E5%BA%8F/Users/Keats/Desktop/Erewhon/Yanxu-Blog/source_posts/%E5%A0%86%E6%8E%92%E5%BA%8F/max-heapify.png">
+<meta property="og:image" content="http://xht03.github.io/2024/10/06/%E5%A0%86%E6%8E%92%E5%BA%8F/Users/Keats/Desktop/Erewhon/Yanxu-Blog/source_posts/%E5%A0%86%E6%8E%92%E5%BA%8F/overhead.png">
+<meta property="og:image" content="https://ref.xht03.online/202411060917722.png">
+<meta property="article:published_time" content="2024-10-06T02:51:36.000Z">
+<meta property="article:modified_time" content="2024-11-06T05:57:39.951Z">
+<meta property="article:author" content="xht03">
+<meta property="article:tag" content="original">
+<meta property="article:tag" content="notes">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://xht03.github.io/2024/10/06/%E5%A0%86%E6%8E%92%E5%BA%8F/Users/Keats/Desktop/Erewhon/Yanxu-Blog/source_posts/%E5%A0%86%E6%8E%92%E5%BA%8F/heap.png">
+
+<link rel="canonical" href="http://xht03.github.io/2024/10/06/%E5%A0%86%E6%8E%92%E5%BA%8F/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>堆排序 | 延绪的水上书</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">延绪的水上书</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://xht03.github.io/2024/10/06/%E5%A0%86%E6%8E%92%E5%BA%8F/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="xht03">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="延绪的水上书">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          堆排序
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2024-10-06 10:51:36" itemprop="dateCreated datePublished" datetime="2024-10-06T10:51:36+08:00">2024-10-06</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2024-11-06 13:57:39" itemprop="dateModified" datetime="2024-11-06T13:57:39+08:00">2024-11-06</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/The-Introduction-to-Algorithm/" itemprop="url" rel="index"><span itemprop="name">The Introduction to Algorithm</span></a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2024/10/06/%E5%A0%86%E6%8E%92%E5%BA%8F/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2024/10/06/堆排序/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h3 id="堆"><a href="#堆" class="headerlink" title="堆"></a>堆</h3><p>堆是一个<strong>数组</strong>，存储在数组中的二叉树。堆可以看成一个近似的<strong>完全二叉树</strong>，除了最底层外，该树是充满的。</p>
+<p>堆可以分为两类：</p>
+<ul>
+<li><strong>最大堆</strong>：父节点 &gt; 子节点</li>
+<li><strong>最小堆</strong>：父节点 &lt; 子节点</li>
+</ul>
+<p><img src="/2024/10/06/%E5%A0%86%E6%8E%92%E5%BA%8F/Users\Keats\Desktop\Erewhon\Yanxu-Blog\source_posts\堆排序\heap.png" alt="最大堆"></p>
+<hr>
+<h3 id="堆排序"><a href="#堆排序" class="headerlink" title="堆排序"></a>堆排序</h3><p>堆排序的时间复杂度也是 <strong>O(n·lgn)<strong>。但是，不同于归并排序，堆排序具有</strong>空间原址性</strong>：只需要常数个额外空间来存储临时数据。</p>
+<p>为了实现堆，我们要实现以下两个函数：</p>
+<ul>
+<li><code>MAX-HEAPIFY()</code>：最大堆化函数，时间复杂度 **O(lgn)**。</li>
+<li><code>BUILD-MAX-HEAP()</code>：建立最大堆函数，时间复杂度 **O(n)**。</li>
+</ul>
+<hr>
+<h4 id="堆化"><a href="#堆化" class="headerlink" title="堆化"></a>堆化</h4><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># python代码</span></span><br><span class="line"><span class="comment"># A: List of elements in the heap</span></span><br><span class="line"><span class="comment"># i: Index of the element to check</span></span><br><span class="line"><span class="comment"># n: Total number of elements in the heap</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">max_heapify</span>(<span class="params">A, i, n</span>):</span><br><span class="line">    largest = i  <span class="comment"># Initialize largest as root</span></span><br><span class="line">    left = <span class="number">2</span> * i + <span class="number">1</span>  <span class="comment"># i&#x27;s left child</span></span><br><span class="line">    right = <span class="number">2</span> * i + <span class="number">2</span>  <span class="comment"># i&#x27;s right child</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># If left child is larger than root</span></span><br><span class="line">    <span class="keyword">if</span> left &lt; n <span class="keyword">and</span> A[left] &gt; A[largest]:</span><br><span class="line">        largest = left</span><br><span class="line"></span><br><span class="line">    <span class="comment"># If right child is larger than the largest so far</span></span><br><span class="line">    <span class="keyword">if</span> right &lt; n <span class="keyword">and</span> A[right] &gt; A[largest]:</span><br><span class="line">        largest = right</span><br><span class="line"></span><br><span class="line">    <span class="comment"># If largest is not root</span></span><br><span class="line">    <span class="keyword">if</span> largest != i:</span><br><span class="line">        A[i], A[largest] = A[largest], A[i]  <span class="comment"># Swap</span></span><br><span class="line">        max_heapify(A, largest, n)  <span class="comment"># Recursively heapify the affected sub-tree</span></span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/10/06/%E5%A0%86%E6%8E%92%E5%BA%8F/Users\Keats\Desktop\Erewhon\Yanxu-Blog\source_posts\堆排序\max-heapify.png" alt="最大堆化的调用过程（以i=2为例）"></p>
+<p>需要注意：当对 i 节点调用<code>MAX-HEAPIFY()</code>时，只有当其左右子树都是最大堆时，调用后，i 节点开始的树才是最大堆。</p>
+<p>直观上，不难发现<code>MAX-HEAPIFY()</code>的时间复杂度是：**O(lgn)**。</p>
+<hr>
+<h4 id="建堆"><a href="#建堆" class="headerlink" title="建堆"></a>建堆</h4><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># python代码</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">build_max_heap</span>(<span class="params">A</span>):</span><br><span class="line">    n = <span class="built_in">len</span>(A)</span><br><span class="line">    A.heap_size = n  <span class="comment"># Set the heap size</span></span><br><span class="line">    <span class="comment"># Start from the last non-leaf node and move upwards</span></span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(n // <span class="number">2</span> - <span class="number">1</span>, -<span class="number">1</span>, -<span class="number">1</span>):</span><br><span class="line">        max_heapify(A, i, n)</span><br></pre></td></tr></table></figure>
+
+<p>粗略的看，每次调用<code>max_heapify()</code>函数的时间开销是**O(lgn)<strong>，总共调用了</strong>O(n)<strong>次，所以<code>build_max_heap()</code>的时间复杂度应该是：</strong>O(n·lgn)**。</p>
+<p>但是由于：底层节点调用<code>max_heapify()</code>的时间复杂度实际上是**O(h)<strong>，远远小于</strong>O(n)<strong>，且底层节点数量更多，时间开销接近</strong>O(lgn)<strong>的高层节点数量很少。所以，<code>build-max-heap()</code>的时间复杂度比</strong>O(n·lgn)<strong>更小，是</strong>O(n)**。</p>
+<p>推导如下：</p>
+<blockquote>
+<p>高度为h的节点最多有 [n&#x2F;2<sup>h+1</sup>] 个。</p>
+</blockquote>
+<p><img src="/2024/10/06/%E5%A0%86%E6%8E%92%E5%BA%8F/Users\Keats\Desktop\Erewhon\Yanxu-Blog\source_posts\堆排序\overhead.png"></p>
+<p>因此，我们可以在<strong>线性时间</strong>内，把一个无序数组构造成为一个最大堆。</p>
+<hr>
+<h4 id="堆排序-1"><a href="#堆排序-1" class="headerlink" title="堆排序"></a>堆排序</h4><p>堆排序的过程：</p>
+<ul>
+<li>在整个数组上<strong>建立最大堆</strong>。</li>
+<li>数组的第一个元素（待排序序列中的最大元素），与待排序序列的最后一个元素交换。</li>
+<li>堆大小（也是待排序序列长度）减1。</li>
+<li>对堆顶元素（数组第一个元素）调用<code>max_heapify</code>函数，保证新的堆仍是最大堆。</li>
+<li>如此，排好了原序列中的最大元素，且新序列仍是最大堆。如此循环即可。</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># python代码</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">heapsort</span>(<span class="params">A</span>):</span><br><span class="line">    build_max_heap(A)  <span class="comment"># Build the max heap</span></span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="built_in">len</span>(A), <span class="number">1</span>, -<span class="number">1</span>):</span><br><span class="line">        A[<span class="number">0</span>], A[i-<span class="number">1</span>] = A[i-<span class="number">1</span>], A[<span class="number">0</span>]  <span class="comment"># Swap the root with the last element</span></span><br><span class="line">        A.heap_size -= <span class="number">1</span>  <span class="comment"># Decrease the heap size</span></span><br><span class="line">        max_heapify(A, <span class="number">0</span>, i-<span class="number">1</span>)  <span class="comment"># Heapify the root</span></span><br></pre></td></tr></table></figure>
+
+<p>堆排序的时间复杂度：**O(n·lgn)**。</p>
+<p><img src="https://ref.xht03.online/202411060917722.png"></p>
+<hr>
+<h3 id="优先队列"><a href="#优先队列" class="headerlink" title="优先队列"></a>优先队列</h3><p>优先队列是一种数据结构，维护由一组元素，支持插入和删除最大元素（或最小元素）。</p>
+<p>一个<strong>最大优先队列</strong>支持以下操作：</p>
+<table>
+<thead>
+<tr>
+<th align="center">函数</th>
+<th align="center">描述</th>
+<th align="center">时间</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">INSERT(S,x)</td>
+<td align="center">把元素 x 插入集合 S 中。</td>
+<td align="center"><strong>O(lgn)</strong></td>
+</tr>
+<tr>
+<td align="center">MAXIMUM(S)</td>
+<td align="center">返回 S 中具有最大元素。</td>
+<td align="center"><strong>O(1)</strong></td>
+</tr>
+<tr>
+<td align="center">EXTRACT-MAX(S)</td>
+<td align="center">去掉并返回 S 中的具有最大元素。</td>
+<td align="center"><strong>O(lgn)</strong></td>
+</tr>
+<tr>
+<td align="center">INCREASE-KEY(S, x, k)</td>
+<td align="center">将元素 x 增加到 k（假设k&gt;x）</td>
+<td align="center"><strong>O(lgn)</strong></td>
+</tr>
+</tbody></table>
+<p>需要注意：</p>
+<ul>
+<li>堆并不一定是是二叉堆，二叉堆只是常见且易于用数组实现而已。</li>
+<li>最大堆（二叉堆）只是优先队列的一种实现方式。</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># python code</span></span><br><span class="line"><span class="comment">#（这里省略了class heap的类定义）</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># MAXIMUM(S)</span></span><br><span class="line"><span class="comment"># 返回堆顶元素即可</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">heap_maximum</span>(<span class="params">A</span>):</span><br><span class="line">    <span class="keyword">if</span> A.heap_size &lt; <span class="number">1</span>:</span><br><span class="line">        <span class="keyword">raise</span> ValueError(<span class="string">&quot;Heap is empty&quot;</span>)</span><br><span class="line">    <span class="keyword">return</span> A[<span class="number">0</span>]</span><br><span class="line"></span><br><span class="line"><span class="comment"># EXTRACT-MAX(S)</span></span><br><span class="line"><span class="comment"># 返回并删除堆顶元素，再对堆顶元素调用max_heapify()</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">heap_extract_max</span>(<span class="params">A</span>):</span><br><span class="line">    <span class="keyword">if</span> A.heap_size &lt; <span class="number">1</span>:</span><br><span class="line">        <span class="keyword">raise</span> ValueError(<span class="string">&quot;Heap underflow&quot;</span>)</span><br><span class="line">    max_value = A[<span class="number">0</span>]</span><br><span class="line">    A[<span class="number">0</span>] = A[A.heap_size - <span class="number">1</span>]</span><br><span class="line">    A.heap_size -= <span class="number">1</span></span><br><span class="line">    max_heapify(A, <span class="number">0</span>, A.heap_size)</span><br><span class="line">    <span class="keyword">return</span> max_value</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">parent</span>(<span class="params">i</span>):</span><br><span class="line">    <span class="keyword">return</span> (i - <span class="number">1</span>) // <span class="number">2</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># INCREASE-KEY(S, x, k)</span></span><br><span class="line"><span class="comment"># 将A[i]赋值为k，并往上逐个检查：是否大于父节点，若大于则交换。</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">heap_increase_key</span>(<span class="params">A, i, key</span>):</span><br><span class="line">    <span class="keyword">if</span> key &lt; A[i]:</span><br><span class="line">        <span class="keyword">raise</span> ValueError(<span class="string">&quot;New key is smaller than current key&quot;</span>)</span><br><span class="line">    A[i] = key</span><br><span class="line">    <span class="keyword">while</span> i &gt; <span class="number">1</span> <span class="keyword">and</span> A[parent(i)] &lt; A[i]:</span><br><span class="line">        A[i], A[parent(i)] = A[parent(i)], A[i]  <span class="comment"># Swap with parent</span></span><br><span class="line">        i = parent(i)</span><br><span class="line">        </span><br><span class="line"><span class="comment"># INSERT(S,x)</span></span><br><span class="line"><span class="comment"># 在堆末尾插入负无穷，再调用heap_increase_key()将负无穷变为x，从而实现插入。</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">max_heap_insert</span>(<span class="params">A, key</span>):</span><br><span class="line">    A.heap_size += <span class="number">1</span></span><br><span class="line">    A[A.heap_size - <span class="number">1</span>] = <span class="built_in">float</span>(<span class="string">&#x27;-inf&#x27;</span>)  <span class="comment"># Set the new leaf node with a very small value</span></span><br><span class="line">    heap_increase_key(A, A.heap_size - <span class="number">1</span>, key)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/original/" rel="tag"># original</a>
+              <a href="/tags/notes/" rel="tag"># notes</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/10/05/%E5%BF%AB%E9%80%9F%E6%8E%92%E5%BA%8F/" rel="prev" title="快速排序">
+      <i class="fa fa-chevron-left"></i> 快速排序
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/10/11/Scheduler/" rel="next" title="Scheduler">
+      Scheduler <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%A0%86"><span class="nav-number">1.</span> <span class="nav-text">堆</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%A0%86%E6%8E%92%E5%BA%8F"><span class="nav-number">2.</span> <span class="nav-text">堆排序</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%A0%86%E5%8C%96"><span class="nav-number">2.1.</span> <span class="nav-text">堆化</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%BB%BA%E5%A0%86"><span class="nav-number">2.2.</span> <span class="nav-text">建堆</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%A0%86%E6%8E%92%E5%BA%8F-1"><span class="nav-number">2.3.</span> <span class="nav-text">堆排序</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BC%98%E5%85%88%E9%98%9F%E5%88%97"><span class="nav-number">3.</span> <span class="nav-text">优先队列</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">xht03</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">26</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">xht03</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/pjax/pjax.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+  <script>
+var pjax = new Pjax({
+  selectors: [
+    'head title',
+    '#page-configurations',
+    '.content-wrap',
+    '.post-toc-wrap',
+    '.languages',
+    '#pjax'
+  ],
+  switches: {
+    '.post-toc-wrap': Pjax.switches.innerHTML
+  },
+  analytics: false,
+  cacheBust: false,
+  scrollTo : !CONFIG.bookmark.enable
+});
+
+window.addEventListener('pjax:success', () => {
+  document.querySelectorAll('script[data-pjax], script#page-configurations, #pjax script').forEach(element => {
+    var code = element.text || element.textContent || element.innerHTML || '';
+    var parent = element.parentNode;
+    parent.removeChild(element);
+    var script = document.createElement('script');
+    if (element.id) {
+      script.id = element.id;
+    }
+    if (element.className) {
+      script.className = element.className;
+    }
+    if (element.type) {
+      script.type = element.type;
+    }
+    if (element.src) {
+      script.src = element.src;
+      // Force synchronous loading of peripheral JS.
+      script.async = false;
+    }
+    if (element.dataset.pjax !== undefined) {
+      script.dataset.pjax = '';
+    }
+    if (code !== '') {
+      script.appendChild(document.createTextNode(code));
+    }
+    parent.appendChild(script);
+  });
+  NexT.boot.refresh();
+  // Define Motion Sequence & Bootstrap Motion.
+  if (CONFIG.motion.enable) {
+    NexT.motion.integrator
+      .init()
+      .add(NexT.motion.middleWares.subMenu)
+      .add(NexT.motion.middleWares.postList)
+      .bootstrap();
+  }
+  NexT.utils.updateSidebarPosition();
+});
+</script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <div id="pjax">
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://book-written-on-water.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  var disqus_config = function() {
+    this.page.url = "http://xht03.github.io/2024/10/06/%E5%A0%86%E6%8E%92%E5%BA%8F/";
+    this.page.identifier = "2024/10/06/堆排序/";
+    this.page.title = "堆排序";
+    };
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: disqus_config
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://book-written-on-water.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+    </div>
+</body>
+</html>

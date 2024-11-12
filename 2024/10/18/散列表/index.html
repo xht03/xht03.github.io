@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"xht03.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":"default"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":true,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="散列表散列表（Hash Table），也称为哈希表，是一种通过哈希函数将键（Key）映射到表中一个位置以便快速访问记录的数据结构。它的主要目的是提供快速的数据插入、删除和查找操作。散列表通常由数组支持，这个数组称为“槽”或“桶”，数组的每个位置对应一个可能的哈希值。  大量键值对存储时：  如果使用数组，并使用键作为索引，则当键的取值范围很广，但键值对数量却不多时：需要开辟很大的数组空间，却只有很">
+<meta property="og:type" content="article">
+<meta property="og:title" content="散列表">
+<meta property="og:url" content="http://xht03.github.io/2024/10/18/%E6%95%A3%E5%88%97%E8%A1%A8/index.html">
+<meta property="og:site_name" content="延绪的水上书">
+<meta property="og:description" content="散列表散列表（Hash Table），也称为哈希表，是一种通过哈希函数将键（Key）映射到表中一个位置以便快速访问记录的数据结构。它的主要目的是提供快速的数据插入、删除和查找操作。散列表通常由数组支持，这个数组称为“槽”或“桶”，数组的每个位置对应一个可能的哈希值。  大量键值对存储时：  如果使用数组，并使用键作为索引，则当键的取值范围很广，但键值对数量却不多时：需要开辟很大的数组空间，却只有很">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://ref.xht03.online/202410181126836.png">
+<meta property="og:image" content="https://ref.xht03.online/202410211202794.png">
+<meta property="og:image" content="https://ref.xht03.online/202410211208734.png">
+<meta property="og:image" content="https://ref.xht03.online/202410211213292.png">
+<meta property="og:image" content="https://ref.xht03.online/202410211348878.png">
+<meta property="og:image" content="https://ref.xht03.online/202410211350873.png">
+<meta property="og:image" content="https://ref.xht03.online/202410211402163.png">
+<meta property="og:image" content="https://ref.xht03.online/202410211411505.png">
+<meta property="og:image" content="https://ref.xht03.online/202410211418100.png">
+<meta property="og:image" content="https://ref.xht03.online/202411052010570.png">
+<meta property="og:image" content="https://ref.xht03.online/202411052028049.png">
+<meta property="og:image" content="https://ref.xht03.online/202411052049766.png">
+<meta property="og:image" content="http://xht03.github.io/2024/10/18/%E6%95%A3%E5%88%97%E8%A1%A8/Users/Keats/AppData/Roaming/Typora/typora-user-images/image-20241105205626057.png">
+<meta property="article:published_time" content="2024-10-18T02:55:56.000Z">
+<meta property="article:modified_time" content="2024-11-05T13:03:56.514Z">
+<meta property="article:author" content="xht03">
+<meta property="article:tag" content="original">
+<meta property="article:tag" content="notes">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://ref.xht03.online/202410181126836.png">
+
+<link rel="canonical" href="http://xht03.github.io/2024/10/18/%E6%95%A3%E5%88%97%E8%A1%A8/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>散列表 | 延绪的水上书</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">延绪的水上书</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://xht03.github.io/2024/10/18/%E6%95%A3%E5%88%97%E8%A1%A8/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="xht03">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="延绪的水上书">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          散列表
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2024-10-18 10:55:56" itemprop="dateCreated datePublished" datetime="2024-10-18T10:55:56+08:00">2024-10-18</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2024-11-05 21:03:56" itemprop="dateModified" datetime="2024-11-05T21:03:56+08:00">2024-11-05</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/The-Introduction-to-Algorithm/" itemprop="url" rel="index"><span itemprop="name">The Introduction to Algorithm</span></a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2024/10/18/%E6%95%A3%E5%88%97%E8%A1%A8/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2024/10/18/散列表/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h3 id="散列表"><a href="#散列表" class="headerlink" title="散列表"></a>散列表</h3><p><strong>散列表（Hash Table）</strong>，也称为哈希表，是一种通过哈希函数将<strong>键（Key）</strong>映射到表中一个位置以便快速访问记录的数据结构。它的主要目的是提供快速的数据<strong>插入</strong>、<strong>删除</strong>和<strong>查找</strong>操作。散列表通常由数组支持，这个数组称为“<strong>槽</strong>”或“<strong>桶</strong>”，数组的每个位置对应一个可能的哈希值。</p>
+<blockquote>
+<p>大量键值对存储时：</p>
+<ul>
+<li>如果使用<strong>数组</strong>，并使用键作为索引，则当键的取值范围很广，但键值对数量却不多时：需要开辟很大的数组空间，却只有很少数空间被使用，造成空间浪费。</li>
+<li>所以，我们希望通过<strong>hash function</strong>将原本稀疏散落在数组各处的键值对，通过函数映射，集中存放在一个更小的空间中，提高空间利用率。</li>
+</ul>
+</blockquote>
+<hr>
+<p>散列表的基本操作包括：</p>
+<ol>
+<li><strong>插入（Insert）</strong>：将一个新的键值对插入到散列表中。</li>
+<li><strong>查找（Search）</strong>：通过给定的键快速找到对应的值。</li>
+<li><strong>删除（Delete）</strong>：从散列表中删除一个键值对。</li>
+</ol>
+<hr>
+<p>散列表的工作原理如下：</p>
+<ol>
+<li><strong>哈希函数（Hash Function）</strong>：选择一个合适的哈希函数，它能够将输入的键（可以是任意数据类型）转换为数组索引。一个好的哈希函数应该能够均匀地将键分布在数组的索引上，以减少冲突。</li>
+<li><strong>冲突解决（Collision Resolution）</strong>：由于不同的键可能会映射到同一个索引上，这种情况称为冲突。解决冲突的方法有：<ul>
+<li><strong>链地址法（Chaining）</strong>：每个数组索引处都有一个链表，所有映射到该索引的键值对都存储在这个链表中。</li>
+<li><strong>开放寻址法（Open Addressing）</strong>：如果发生冲突，寻找表中的另一个空闲位置来存储该键值对。常见的开放寻址策略有线性探测、二次探测和双重散列。</li>
+</ul>
+</li>
+</ol>
+<hr>
+<h3 id="冲突解决"><a href="#冲突解决" class="headerlink" title="冲突解决"></a>冲突解决</h3><h4 id="链地址法"><a href="#链地址法" class="headerlink" title="链地址法"></a>链地址法</h4><p>在<strong>链地址法（chaining）</strong>中，每个数组索引（或称为“槽”或“桶”）都关联一个<strong>链表</strong>，所有映射到该索引的元素都会被存储在这个链表中。</p>
+<p><img src="https://ref.xht03.online/202410181126836.png" alt="链地址法"></p>
+<hr>
+<p>链地址法的<strong>插入</strong>、<strong>查找</strong>、<strong>删除</strong>操作的伪代码如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">CHAINED-HASH-INSERT(T ,x)</span><br><span class="line">	insert x at the head of list T[h(x. key)]</span><br><span class="line"></span><br><span class="line">CHAINED-HASH-SEARCH(T,k)</span><br><span class="line">	search for an element with key in list T[h(k)]</span><br><span class="line"></span><br><span class="line">CHAINED-HASH-DELETE(T,x)</span><br><span class="line">	delete x from the list T[h(x.key)]</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>给定一个能存放 n 个元素的、具有 m 个槽位的散列表 T。定义 T 的<strong>装载因子（load factor）</strong> &alpha; 为n&#x2F;m，即：一个链的平均存储元素数。</p>
+</blockquote>
+<ul>
+<li><p><strong>插入操作</strong>：将新的元素链接到对应链表的头部，用时**O(1)**。</p>
+</li>
+<li><p><strong>删除操作</strong>：**如果是双向链表，用时O(1)**。如果是单向链表，用时与搜索操作时间相近。</p>
+<blockquote>
+<p>注意，这里删除操作<code>CHAINED-HASH-DELETE(T,x)</code>以元素 x 而不是它的关键字 k 作为输入，所以无需先搜索 x。</p>
+</blockquote>
+</li>
+<li><p><strong>搜索操作</strong>：</p>
+<blockquote>
+<p>在简单均匀散列的假设下，对于用链接法解决冲突的散列表，一次不成功查找的平均时间为 <strong>&Theta;(1 + &alpha;)</strong> 。</p>
+</blockquote>
+<p><strong>证明</strong>：如果查找的关键字 k 不在哈希表中，则需要首先找到对应槽的链表，再遍历整个链表，确定关键字 k 不在哈希表中。而链表的长度期望是 &alpha; 。所以总用时是：&Theta;(1 + &alpha;) 。</p>
+<blockquote>
+<p>在简单均匀散列的假设下，对于用链接法解决冲突的散列表，一次成功查找所需的平均时间为 <strong>&Theta;(1 + &alpha;)</strong> 。</p>
+</blockquote>
+<p><strong>证明</strong>：如果查找的关键字 k 在哈希表中，则需要先找到对应槽的链表，再搜索该链表。链表期望长度是 &alpha; ，关键字 k 等可能地出现在链表第1、2、……、&alpha; 个位置。所以总用时是：&Theta;(1 + (1+&alpha;)&#x2F;2) &#x3D; &Theta;(1 + &alpha;) 。</p>
+</li>
+</ul>
+<p><strong>综上，当n、m数量级相近时，即n&#x3D;O(m)时：链地址法的所有字典操作均是 O(1) 时间。</strong></p>
+<hr>
+<p>python代码实现大致如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 双向链表</span></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">DLLNode</span>:</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self, key, value</span>):</span><br><span class="line">        self.key = key</span><br><span class="line">        self.value = value</span><br><span class="line">        self.prev = <span class="literal">None</span></span><br><span class="line">        self.<span class="built_in">next</span> = <span class="literal">None</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 哈希表</span></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">HashTable</span>:</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self, size=<span class="number">10</span></span>):</span><br><span class="line">        self.size = size</span><br><span class="line">        self.table = [<span class="literal">None</span>] * self.size</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">_hash</span>(<span class="params">self, key</span>):</span><br><span class="line">        <span class="keyword">return</span> <span class="built_in">hash</span>(key) % self.size</span><br></pre></td></tr></table></figure>
+
+
+
+<h4 id="开放寻址法"><a href="#开放寻址法" class="headerlink" title="开放寻址法"></a>开放寻址法</h4><p>在<strong>开放寻址法(open addressing)</strong> 中，所有的元素都存放在散列表里。这里既没有链表，也没有元素存放在散列表外。因此在开放寻址法中，散列表可能会被填满，且<strong>装载因子 &alpha; 不超过1</strong>。</p>
+<hr>
+<h5 id="插入操作"><a href="#插入操作" class="headerlink" title="插入操作"></a>插入操作</h5><p>两个不同的键被哈希函数映射到同一个索引时，开放寻址法会再寻找新的空位索引，直至找到，再存放新插入的键值对。</p>
+<p>插入操作伪代码如下：</p>
+<blockquote>
+<p><code>HASH-INSERT(T,x)</code>将元素 x 插入到哈希表 T 中。</p>
+<p>如果第一次 hash 后的位置冲突了，则会再做第2、3……次 hash，直至找到空位用以插入新元素。所以**开放寻址法的 hash 函数需要两个参数：关键字 k 和第几次 i **。</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">HASH-INSERT(T,x)</span><br><span class="line">	i=0</span><br><span class="line">	repeat</span><br><span class="line">		j=h(x.key,i)</span><br><span class="line">		if T[j]==NIL</span><br><span class="line">			T[j]=x</span><br><span class="line">			return j</span><br><span class="line">		else i=i+1</span><br><span class="line">	until i==m</span><br><span class="line">	error &quot;hash table overflow&quot;</span><br></pre></td></tr></table></figure>
+
+<p>常见探查方法，也即是对应的哈希函数有：</p>
+<ul>
+<li><p><strong>线性探查</strong>：</p>
+<p>当发生冲突时，通过按顺序查找下一个空闲位置来存储键值对。</p>
+<p><img src="https://ref.xht03.online/202410211202794.png" alt="i=0、1、……、m-1"></p>
+<blockquote>
+<p>线性探查方法比较容易实现，但它存在着一个问题（<strong>群集现象</strong>）：</p>
+<p>当一个空槽前有 i 个满的槽时，该空槽为下一个将被占用的概率是 (i+1)&#x2F;m。连续被占用的槽就会变得越来越长，因而平均查找时间也会越来越大。</p>
+<p><strong>随着连续被占用的槽不断增加，平均查找时间也随之不断增加。</strong></p>
+</blockquote>
+</li>
+<li><p><strong>二次探查</strong>：</p>
+<p>为了减轻线性探查的群集现象，我们每次往后推移二次函数个位置，进行探查。</p>
+<p><img src="https://ref.xht03.online/202410211208734.png"></p>
+</li>
+<li><p><strong>双重散列</strong>：</p>
+<p>双重散列通过两个不同的哈希函数来计算候选位置。</p>
+<p><img src="https://ref.xht03.online/202410211213292.png"></p>
+</li>
+</ul>
+<hr>
+<h5 id="查找操作"><a href="#查找操作" class="headerlink" title="查找操作"></a>查找操作</h5><p>查找操作与插入操作类似。</p>
+<p>查找操作伪代码如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">HASH_SEARCH(T,k)</span><br><span class="line">	i=0</span><br><span class="line">	repeat</span><br><span class="line">		j=h(k,j)</span><br><span class="line">		if T[j]==k</span><br><span class="line">			return j</span><br><span class="line">		i=i+1</span><br><span class="line">	until T[j]==NIL or i==m</span><br><span class="line">	return NIL</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h5 id="删除操作"><a href="#删除操作" class="headerlink" title="删除操作"></a>删除操作</h5><p>采用开放寻址法时，删除操作是难以实现的。</p>
+<p>例如：在插入关键字 k 时，发现槽 i 被占用了，则 k 就被插入到后面的位置上。此时我们欲将槽 i 中的关键字删除，那么就无法检索到关键字 k 了。</p>
+<p>所以，删除操作不能直接删除，置为NIL，而是：删除后需要将槽标记为DELETED。</p>
+<p>为此，<strong>在必须具备删除操作的情形下，一般不采用开放寻址法，而采用链地址法</strong>。</p>
+<hr>
+<h5 id="算法分析"><a href="#算法分析" class="headerlink" title="算法分析"></a>算法分析</h5><blockquote>
+<p>给定一个装载因子为 &alpha;&#x3D;n&#x2F;m &lt; 1 的开放寻址散列表，并假设是均匀散列的，则对于一次<strong>不成功的查找</strong>，其期望的探查次数至多为 <strong>1&#x2F;(1 - &alpha;)</strong> 。</p>
+</blockquote>
+<p><strong>证明</strong>：</p>
+<p>对于一个不成功的探查，我们假设经历了 X 次探查。</p>
+<p>对于第 i 次探查，如果是空位，则我们知道散列表中没有该关键字，否则还需要继续探查。</p>
+<p>现在有 n 个元素和 m 个槽。</p>
+<p><img src="https://ref.xht03.online/202410211348878.png"></p>
+<p><img src="https://ref.xht03.online/202410211350873.png"></p>
+<blockquote>
+<p>对于一个装载因子为 &alpha; &lt; 1 的开放寻址散列表，假设采用均匀散列，且表中的每个关键字被查找的可能性是相同的，一次<strong>成功查找</strong>中的探查期望数至多为 <strong>1&#x2F;&alpha; · ln(1&#x2F;(1-&alpha;))</strong> 。</p>
+</blockquote>
+<p><strong>证明</strong>：</p>
+<p>查找操作中所遍历的位置序列，与插入该关键字 k 时所遍历的位置序列是相同的。</p>
+<p>假设 k 是第 i+1 个插入的关键字，则由上一定理，k 的探查的期望次数至多为 <strong>m&#x2F;(m-i)</strong> 。</p>
+<p>对散列表中所有 n 个关键字求平均，则得到一次成功查找的探查期望次数为：</p>
+<p><img src="https://ref.xht03.online/202410211402163.png"></p>
+<hr>
+<h3 id="哈希函数"><a href="#哈希函数" class="headerlink" title="哈希函数"></a>哈希函数</h3><p>哈希函数将<strong>关键字</strong>所组成的域到<strong>散列表索引</strong>所组成的域。</p>
+<p>一个好的哈希函数应（近似地）满足<strong>简单均匀散列</strong>假设：每个关键字都被等可能地散列 m 个槽位中的任何一个，并与其他关键字已散列到哪个槽位无关。</p>
+<p>此外，哈希函数的某些情况可能会要求比简单均匀散列更强的性质。例如，可能希望某些很近似的关键字具有截然不同的散列值。</p>
+<hr>
+<h4 id="除法散列法"><a href="#除法散列法" class="headerlink" title="除法散列法"></a>除法散列法</h4><p>通过取 k 除以 m 的余数，将关键字 k 映射到 m 个槽中的某一个上。</p>
+<p><img src="https://ref.xht03.online/202410211411505.png"></p>
+<p>当应用除法散列法时，要避免选择 m 的某些值。例如，<strong>m 不应为 2 的幂</strong>，因为如果 m&#x3D;2<sup>p</sup>，则 h(k) 就是 k 的 p 个最低位数字。</p>
+<p><strong>一个不太接近 2 的整数幂的素数，常常是 m 的一个较好的选择</strong>。</p>
+<hr>
+<h4 id="乘法散列法"><a href="#乘法散列法" class="headerlink" title="乘法散列法"></a>乘法散列法</h4><p>乘法散列法分两步：</p>
+<ul>
+<li><p>用关键字 k 乘上常数 A (0&lt;A&lt;1)，并提取 kA 的小数部分。</p>
+</li>
+<li><p>用 m 乘以这个值，再向下取整。</p>
+</li>
+</ul>
+<p><img src="https://ref.xht03.online/202410211418100.png"></p>
+<p>乘法散列法的一个优点是：<strong>对 m 的选择不是特别关键</strong>，一般选择它为 2 的某个幂次(m&#x3D;2<sup>p</sup>, p为某个整数）。这是因为如此在计算机上容易表示。</p>
+<p>虽然这个方法对任何的A 值都适用，但对某些值效果更好（如：黄金分割比例倒数）。</p>
+<hr>
+<h4 id="全域散列法"><a href="#全域散列法" class="headerlink" title="全域散列法"></a>全域散列法</h4><p>一般情况下，哈希函数能将随机的输入均匀的映射到散列表的各个槽中。</p>
+<p>但是如果有人恶意针对某个固定的哈希函数，故意输入n个关键字，被哈希函数映射到同一个槽中，那么平均检索时间退化为 &Theta;(n) 。</p>
+<p>为了避免这种困境，我们将<strong>随机地选择哈希函数</strong>。这种方法称为：<strong>全域散列（universal hashing）</strong>。</p>
+<hr>
+<p>当然，随机选择并不是乱选，而是从一组预先设计（<strong>全域的</strong>）的函数 H 中，随机地选择一个哈希函数 h。</p>
+<blockquote>
+<p>设 H 为一组有限的散列函数，它们将关键字全域 U 映射到 {0, 1, …, m-1} 中。如果它们对每一对不同的关键字 k，l &isin; U，满足 h(k) &#x3D; h(l) 的散列函数 h &isin; H 的个数至多为 |H|&#x2F;m，那么这组函数 H 称为<strong>全域的（universal）</strong>。</p>
+</blockquote>
+<p>这表明了两点性质：</p>
+<ul>
+<li>如果从 H 中随机地选择一个散列函数，当关键字 k &ne; l 时，两者发生冲突的概率不大于 1&#x2F;m。</li>
+<li>这也正好是从集合{0, 1, …, m-1} 中独立地随机选择 h(k) 和 h(l) 时发生冲突的概率。</li>
+</ul>
+<hr>
+<p>我们可以证明，全域散列法能均匀地将关键字映射进各个槽中。</p>
+<blockquote>
+<p>如果 h 选自一组全域散列函数，将 n 个关键字散列到一个大小为 m 的表 T 中，并用链接法解决冲突。</p>
+<ul>
+<li>如果关键字 k 不在表中，则 k 被散列到的链表的期望长度 E[n<sub>h(k)</sub>] 至多为 <strong>&alpha; &#x3D; n&#x2F;m</strong>。</li>
+<li>如果关键字 k 在表中，则包含关键字 k 的链表的期望长度 E[n<sub>h(k)</sub>] 至多为 **1+ &alpha;**。</li>
+</ul>
+</blockquote>
+<p><strong>证明</strong>：</p>
+<p>由于上述的性质1，我们知道：对于每一个关键字 k，其余关键字与之冲突的概率 &le; 1&#x2F;m。所以与 k 映射到同一个槽的关键字个数的期望为：n&#x2F;m &#x3D; &alpha;。</p>
+<ul>
+<li>如果关键字 k 不在表中，则 k 被散列到的链表的期望长度至多为 <strong>&alpha; &#x3D; n&#x2F;m</strong>。</li>
+<li>如果关键字 k 在表中，则计数时需要算上 k，所以再 +1。</li>
+</ul>
+<hr>
+<p>如何设计一组全域哈希函数呢？</p>
+<ol>
+<li><p>选择一个足够大的素数 p，使得每一个可能的关键字 k 都落在 [0, p-1] 。</p>
+</li>
+<li><p><img src="https://ref.xht03.online/202411052010570.png"></p>
+</li>
+</ol>
+<hr>
+<h3 id="完全散列"><a href="#完全散列" class="headerlink" title="完全散列"></a>完全散列</h3><p>当关键字集合是<strong>静态（static）</strong>时，散列技术也能提供出色的<strong>最坏情况</strong>性能。所谓静态，就是指一旦各关键字存入表中，关键字集合就不再变化了。</p>
+<p>针对这一情形，我们采用：<strong>完全散列（perfect hashing）</strong>。</p>
+<blockquote>
+<p>如果该方法进行查找时，能在最坏情况下用 <strong>O(1)</strong> 时间完成。</p>
+</blockquote>
+<hr>
+<p>我们采用<strong>两级</strong>的散列方法来设计完全散列方案，在每级上都使用<strong>全域散列</strong>。</p>
+<ul>
+<li>第一级与<strong>链地址法</strong>相同：从一组全域哈希函数中选出一个函数 h，将 n 个关键字映射到 m 个槽中。</li>
+<li>第二级中，我们建立一个<strong>较小的散列表</strong>。<ul>
+<li>通过选取合适的哈希函数 h<sub>i</sub>，保证第二级散列表上不会发生冲突。（<em>从一组全域哈希函数中随机选，如果冲突，则随机再选，直到选出。</em>）</li>
+<li><strong>第二级散列表 S<sub>i</sub> 的大小 m<sub>i</sub> 总是被散列到槽中的元素个数 n<sub>i</sub> 的平方</strong>。</li>
+</ul>
+</li>
+</ul>
+<p><img src="https://ref.xht03.online/202411052028049.png" alt="完全散列表"></p>
+<hr>
+<p>我们可以证明：<strong>在第二级散列表选取哈希函数时，比较容易选出一个哈希函数，不存在冲突。</strong></p>
+<blockquote>
+<p>如果从一个全域散列函数类中随机选出散列函数 h，将 n 个关键宇存储在一个大小为 m &#x3D; n<sup>2</sup> 的散列表中，那么表中出现的冲突个数的期望小于 1&#x2F;2。</p>
+</blockquote>
+<p><img src="https://ref.xht03.online/202411052049766.png"></p>
+<hr>
+<p>此外，我们可以证明：<strong>通过合适地选取第一级哈希函数，预期使用的总空间大小为 O(n)。</strong></p>
+<p><img src="/2024/10/18/%E6%95%A3%E5%88%97%E8%A1%A8/Users\Keats\AppData\Roaming\Typora\typora-user-images\image-20241105205626057.png" alt="image-20241105205626057"></p>
+<hr>
+<p>python 代码实现如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> random</span><br><span class="line"><span class="keyword">from</span> sympy <span class="keyword">import</span> isprime</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># 全域线性哈希函数</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">uni_hash</span>(<span class="params">a, b, p, m, key</span>):</span><br><span class="line">    <span class="keyword">return</span> (a * key + b) % p % m</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">SubHashTable</span>:</span><br><span class="line">    <span class="string">&quot;&quot;&quot;子散列表&quot;&quot;&quot;</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self, sub_keys=[]</span>):</span><br><span class="line">        self.n = <span class="built_in">len</span>(sub_keys)</span><br><span class="line">        self.m = <span class="built_in">len</span>(sub_keys) ** <span class="number">2</span></span><br><span class="line"></span><br><span class="line">        <span class="comment"># 获取大于maxVal的最小素数</span></span><br><span class="line">        maxVal = <span class="built_in">max</span>(sub_keys) <span class="keyword">if</span> <span class="built_in">len</span>(sub_keys) != <span class="number">0</span> <span class="keyword">else</span> <span class="number">0</span></span><br><span class="line">        maxVal = <span class="built_in">max</span>(maxVal, self.m)</span><br><span class="line">        self.p = maxVal + maxVal % <span class="number">2</span> + <span class="number">1</span></span><br><span class="line">        <span class="keyword">while</span> <span class="keyword">not</span> isprime(self.p):</span><br><span class="line">            self.p += <span class="number">2</span></span><br><span class="line"></span><br><span class="line">        <span class="comment"># 填充键值, 保证不冲突</span></span><br><span class="line">        is_conflict = <span class="literal">True</span></span><br><span class="line">        <span class="keyword">while</span> is_conflict:</span><br><span class="line">            is_conflict = <span class="literal">False</span></span><br><span class="line">            self.nums = [<span class="literal">None</span>] * self.m</span><br><span class="line">            self.a = random.randint(<span class="number">1</span>, self.p - <span class="number">1</span>)</span><br><span class="line">            self.b = random.randint(<span class="number">0</span>, self.p - <span class="number">1</span>)</span><br><span class="line"></span><br><span class="line">            <span class="comment"># 遍历子键, 填充哈希表</span></span><br><span class="line">            <span class="keyword">for</span> key <span class="keyword">in</span> sub_keys:</span><br><span class="line">                idx = uni_hash(self.a, self.b, self.p, self.m, key)</span><br><span class="line">                <span class="keyword">if</span> self.nums[idx] <span class="keyword">is</span> <span class="keyword">not</span> <span class="literal">None</span>:</span><br><span class="line">                    is_conflict = <span class="literal">True</span></span><br><span class="line">                    <span class="keyword">break</span></span><br><span class="line">                self.nums[idx] = key</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 插入键值, 并重建哈希表</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">insert</span>(<span class="params">self, key</span>):</span><br><span class="line">        <span class="keyword">if</span> self.search(key):</span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line">        subkeys = [k <span class="keyword">for</span> k <span class="keyword">in</span> self.nums <span class="keyword">if</span> k <span class="keyword">is</span> <span class="keyword">not</span> <span class="literal">None</span>]</span><br><span class="line">        subkeys.append(key)</span><br><span class="line">        self.__init__(subkeys)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 删除键值, 并重建哈希表</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">delete</span>(<span class="params">self, key</span>):</span><br><span class="line">        subkeys = [k <span class="keyword">for</span> k <span class="keyword">in</span> self.nums <span class="keyword">if</span> k <span class="keyword">is</span> <span class="keyword">not</span> <span class="literal">None</span> <span class="keyword">and</span> k != key]</span><br><span class="line">        self.__init__(subkeys)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">search</span>(<span class="params">self, key</span>):</span><br><span class="line">        <span class="keyword">if</span> self.n == <span class="number">0</span>:</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">False</span></span><br><span class="line">        idx = uni_hash(self.a, self.b, self.p, self.m, key)</span><br><span class="line">        <span class="keyword">return</span> self.nums[idx] == key</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">PerfectHashTable</span>:</span><br><span class="line">    <span class="string">&quot;&quot;&quot;完全散列&quot;&quot;&quot;</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self, m=<span class="number">10</span></span>):</span><br><span class="line">        self.m = m</span><br><span class="line">        self.sub_table = [SubHashTable()] * m</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">insert</span>(<span class="params">self, key</span>):</span><br><span class="line">        idx = key % self.m</span><br><span class="line">        self.sub_table[idx].insert(key)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">delete</span>(<span class="params">self, key</span>):</span><br><span class="line">        idx = key % self.m</span><br><span class="line">        self.sub_table[idx].delete(key)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">search</span>(<span class="params">self, key</span>):</span><br><span class="line">        idx = key % self.m</span><br><span class="line">        <span class="keyword">return</span> self.sub_table[idx].search(key)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># 测试功能是否有效</span></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&quot;__main__&quot;</span>:</span><br><span class="line">    pht = PerfectHashTable()</span><br><span class="line">    ref_set = <span class="built_in">set</span>()</span><br><span class="line">    <span class="keyword">for</span> _ <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">100</span>):</span><br><span class="line">        key = random.randint(<span class="number">0</span>, <span class="number">10000</span>)</span><br><span class="line">        ref_set.add(key)</span><br><span class="line">        pht.insert(key)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> key <span class="keyword">in</span> ref_set:</span><br><span class="line">        <span class="keyword">assert</span> pht.search(key) == <span class="literal">True</span></span><br><span class="line">        pht.delete(key)</span><br><span class="line">        <span class="keyword">assert</span> pht.search(key) == <span class="literal">False</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;All tests passed.&quot;</span>)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/original/" rel="tag"># original</a>
+              <a href="/tags/notes/" rel="tag"># notes</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/10/11/%E9%A1%BA%E5%BA%8F%E7%BB%9F%E8%AE%A1%E9%87%8F/" rel="prev" title="顺序统计量">
+      <i class="fa fa-chevron-left"></i> 顺序统计量
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/10/31/%E7%BA%A2%E9%BB%91%E6%A0%91/" rel="next" title="红黑树">
+      红黑树 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%95%A3%E5%88%97%E8%A1%A8"><span class="nav-number">1.</span> <span class="nav-text">散列表</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%86%B2%E7%AA%81%E8%A7%A3%E5%86%B3"><span class="nav-number">2.</span> <span class="nav-text">冲突解决</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%93%BE%E5%9C%B0%E5%9D%80%E6%B3%95"><span class="nav-number">2.1.</span> <span class="nav-text">链地址法</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%BC%80%E6%94%BE%E5%AF%BB%E5%9D%80%E6%B3%95"><span class="nav-number">2.2.</span> <span class="nav-text">开放寻址法</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#%E6%8F%92%E5%85%A5%E6%93%8D%E4%BD%9C"><span class="nav-number">2.2.1.</span> <span class="nav-text">插入操作</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E6%9F%A5%E6%89%BE%E6%93%8D%E4%BD%9C"><span class="nav-number">2.2.2.</span> <span class="nav-text">查找操作</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E5%88%A0%E9%99%A4%E6%93%8D%E4%BD%9C"><span class="nav-number">2.2.3.</span> <span class="nav-text">删除操作</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E7%AE%97%E6%B3%95%E5%88%86%E6%9E%90"><span class="nav-number">2.2.4.</span> <span class="nav-text">算法分析</span></a></li></ol></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%93%88%E5%B8%8C%E5%87%BD%E6%95%B0"><span class="nav-number">3.</span> <span class="nav-text">哈希函数</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%99%A4%E6%B3%95%E6%95%A3%E5%88%97%E6%B3%95"><span class="nav-number">3.1.</span> <span class="nav-text">除法散列法</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%B9%98%E6%B3%95%E6%95%A3%E5%88%97%E6%B3%95"><span class="nav-number">3.2.</span> <span class="nav-text">乘法散列法</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%85%A8%E5%9F%9F%E6%95%A3%E5%88%97%E6%B3%95"><span class="nav-number">3.3.</span> <span class="nav-text">全域散列法</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%8C%E5%85%A8%E6%95%A3%E5%88%97"><span class="nav-number">4.</span> <span class="nav-text">完全散列</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">xht03</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">26</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">xht03</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/pjax/pjax.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+  <script>
+var pjax = new Pjax({
+  selectors: [
+    'head title',
+    '#page-configurations',
+    '.content-wrap',
+    '.post-toc-wrap',
+    '.languages',
+    '#pjax'
+  ],
+  switches: {
+    '.post-toc-wrap': Pjax.switches.innerHTML
+  },
+  analytics: false,
+  cacheBust: false,
+  scrollTo : !CONFIG.bookmark.enable
+});
+
+window.addEventListener('pjax:success', () => {
+  document.querySelectorAll('script[data-pjax], script#page-configurations, #pjax script').forEach(element => {
+    var code = element.text || element.textContent || element.innerHTML || '';
+    var parent = element.parentNode;
+    parent.removeChild(element);
+    var script = document.createElement('script');
+    if (element.id) {
+      script.id = element.id;
+    }
+    if (element.className) {
+      script.className = element.className;
+    }
+    if (element.type) {
+      script.type = element.type;
+    }
+    if (element.src) {
+      script.src = element.src;
+      // Force synchronous loading of peripheral JS.
+      script.async = false;
+    }
+    if (element.dataset.pjax !== undefined) {
+      script.dataset.pjax = '';
+    }
+    if (code !== '') {
+      script.appendChild(document.createTextNode(code));
+    }
+    parent.appendChild(script);
+  });
+  NexT.boot.refresh();
+  // Define Motion Sequence & Bootstrap Motion.
+  if (CONFIG.motion.enable) {
+    NexT.motion.integrator
+      .init()
+      .add(NexT.motion.middleWares.subMenu)
+      .add(NexT.motion.middleWares.postList)
+      .bootstrap();
+  }
+  NexT.utils.updateSidebarPosition();
+});
+</script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <div id="pjax">
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://book-written-on-water.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  var disqus_config = function() {
+    this.page.url = "http://xht03.github.io/2024/10/18/%E6%95%A3%E5%88%97%E8%A1%A8/";
+    this.page.identifier = "2024/10/18/散列表/";
+    this.page.title = "散列表";
+    };
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: disqus_config
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://book-written-on-water.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+    </div>
+</body>
+</html>
